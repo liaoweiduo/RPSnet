@@ -116,7 +116,7 @@ class RPS_net(nn.Module):
                 exec("self.conv9.append(self.m9" + str(i) + ")")
 
             if len(self.final_layers) < 1:
-                self.final_layer1 = nn.Linear(512, 1000)
+                self.final_layer1 = nn.Linear(512, self.args.num_class)
                 self.final_layers.append(self.final_layer1)
 
             

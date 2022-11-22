@@ -38,27 +38,29 @@ from learner import Learner
 from util import *
 from cifar_dataset import CIFAR100
 
+from avalanche.benchmarks.utils import PathsDataset
+
 
 class args:
     epochs = 100
-    checkpoint = "results/imagenet/RPSnet-IMAGENET_100_10_2k10"
+    checkpoint = "results/sysgqa/RPSnet-2way-10tasks"
     savepoint = ""
-    data ='/raid/data/Machine_IIAI/imbalance/fastai_experiments/imagenet/ILSVRC/Data/CLS-LOC/'
-    labels_data = "prepare/imagenet_100_10_2k.pkl"
+    data = '../datasets/gqa/allImages/images'
+    labels_data = "prepare/sysgqa_train.pkl"
     
-    num_class = 100
-    class_per_task = 10
+    num_class = 25
+    class_per_task = 2
     M = 8
     jump = 2
     rigidness_coff = 10
-    dataset = "IMAGENET"
+    dataset = "SYSGQA"
    
     L = 9
     N = 1
     lr = 0.001
-    train_batch = 64
-    test_batch = 64
-    workers = 16
+    train_batch = 8
+    test_batch = 8
+    workers = 8
     resume = False
     arch = "res-18"
     start_epoch = 0
@@ -92,41 +94,10 @@ def main():
     if not os.path.isdir(args.checkpoint):
         mkdir_p(args.checkpoint)
         
-    if not os.path.isdir("models/imagenet/"+args.checkpoint.split("/")[-1]):
-        mkdir_p("models/imagenet/"+args.checkpoint.split("/")[-1])
-    args.savepoint = "models/imagenet/"+args.checkpoint.split("/")[-1]
+    if not os.path.isdir("models/sysgqa/"+args.checkpoint.split("/")[-1]):
+        mkdir_p("models/sysgqa/"+args.checkpoint.split("/")[-1])
+    args.savepoint = "models/sysgqa/"+args.checkpoint.split("/")[-1]
 
-
-
-
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])    
-
-    import torch.utils.data as data
-    from PIL import Image 
-    def default_loader(path):
-	    return Image.open(path).convert('RGB')
-
-    class ImageFilelist(data.Dataset):
-        def __init__(self, root, flist,targets=None, transform=None, target_transform=None, loader=default_loader):
-            self.root   = root
-            self.imlist = flist		
-            self.transform = transform
-            self.target_transform = target_transform
-            self.loader = loader
-            self.targets=targets
-
-        def __getitem__(self, index):
-            impath = self.imlist[index]
-            target = self.targets[index]
-            img = self.loader(os.path.join(self.root,impath))
-            if self.transform is not None:
-                img = self.transform(img)
-            if self.target_transform is not None:
-                target = self.target_transform(target)           
-            return img, target
-        def __len__(self):
-            return len(self.imlist)
 
     start_sess = int(sys.argv[2])
     test_case = sys.argv[1]
@@ -138,48 +109,110 @@ def main():
         
     for ses in range(start_sess, start_sess+1):
 
-        ##############################  data loader for imagenet based upon file names #####################
-        trn_fnames=a['trn_nms'][a[ses]['curent']]
-        trn_labs=a['ytrain'][a[ses]['curent']]
-        val_fnames=a['tst_nms'][a[ses]['test']]
-        val_labs=a['ytest'][a[ses]['test']]
+        ##############################  data loader for sys gqa dataset #####################
 
-        if ses > 0:
-            ex_fnames=a['trn_nms'][a[ses-1]['exmp']]
-            ex_labs=a['ytrain'][a[ses-1]['exmp']]
-            
-            trn_fnames=np.concatenate((trn_fnames,np.tile(ex_fnames,1)))
-            trn_labs=np.concatenate((trn_labs,np.tile(ex_labs,1)))
+        trn_instances = [a['trn_ind'][idx] for idx in a[ses]['curent']]
+        val_instances = [a['tst_ind'][idx] for idx in a[ses]['test']]
 
-        train_dataset=ImageFilelist(root=args.data, flist=trn_fnames,targets=trn_labs,transform= transforms.Compose([
-                transforms.RandomResizedCrop(224),
+        ex_instances = []
+        if ses > 0 and ses < 10:        # for novel testing, do not use replay memory
+            ex_instances = [a['trn_ind'][idx] for idx in a[ses-1]['exmp']]
+            trn_instances.extend(ex_instances)
+
+        # train_dataset=ImageFilelist(root=args.data, flist=trn_fnames,targets=trn_labs,transform= transforms.Compose([
+        #         transforms.RandomResizedCrop(224),
+        #         transforms.RandomHorizontalFlip(),
+        #         transforms.ToTensor(),
+        #         normalize,
+        #     ]))
+        #
+        # val_dataset=ImageFilelist(root=args.data, flist=val_fnames,targets=val_labs,transform= transforms.Compose([
+        #         transforms.Resize(230),
+        #         transforms.CenterCrop(224),
+        #         transforms.ToTensor(),
+        #         normalize,
+        #     ]))
+
+        _image_size = (224, 224)
+        _default_cgqa_train_transform = transforms.Compose(
+            [
+                transforms.Resize(_image_size),  # allow reshape but not equal scaling
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
-                normalize,
-            ]))
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
 
-        val_dataset=ImageFilelist(root=args.data, flist=val_fnames,targets=val_labs,transform= transforms.Compose([
-                transforms.Resize(230),
-                transforms.CenterCrop(224),
+        _default_cgqa_eval_transform = transforms.Compose(
+            [
+                transforms.Resize(_image_size),
                 transforms.ToTensor(),
-                normalize,
-            ]))
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
 
+        def target_transform(ses):
+
+            '''-----------'''
+            '''Train phase'''
+            '''-----------'''
+
+            train_classes_in_exp = [[16, 15], [17, 14], [1, 9], [0, 12], [6, 7], [5, 13], [2, 18], [11, 3], [8, 4],
+                                    [10, 19]]
+            train_classes_related = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [16, 17],
+                                     [18, 19]]
+
+            '''----------------'''
+            '''Novel test phase'''
+            '''----------------'''
+            novel_test_classes_in_exp = [[24, 20], [23, 22], [22, 20], [21, 24], [21, 20], [22, 23], [24, 20],
+                                         [24, 21], [20, 21], [24, 22]]
+            novel_test_classes_related = [[20, 21], [20, 21], [20, 21], [20, 21], [20, 21], [20, 21], [20, 21],
+                                          [20, 21], [20, 21], [20, 21]]
+
+            def target_transform_(target):
+                if ses < 10:  # Training phase
+                    class_mapping = np.array([None for _ in range(np.max(train_classes_in_exp[:ses+1]) + 1)])
+                    for s in range(ses+1):
+                        class_mapping[train_classes_in_exp[s]] = train_classes_related[s]
+                else:       # Novel testing phase
+                    class_mapping = np.array([None for _ in range(max(novel_test_classes_in_exp[ses-10]) + 1)])
+                    class_mapping[novel_test_classes_in_exp[ses-10]] = novel_test_classes_related[ses-10]
+
+                return class_mapping[target]
+
+            return target_transform_
+
+        train_dataset = PathsDataset(
+            root=args.data,
+            files=trn_instances,
+            transform=_default_cgqa_train_transform,
+            target_transform=target_transform(ses)
+        )
+        val_dataset = PathsDataset(
+            root=args.data,
+            files=val_instances,
+            transform=_default_cgqa_eval_transform,
+            target_transform=target_transform(ses)
+        )
 
         train_sampler = None
 
         trainloader = torch.utils.data.DataLoader(
             train_dataset, batch_size=args.train_batch, shuffle=(train_sampler is None),
-            num_workers=args.workers, pin_memory=True, sampler=train_sampler)
+            num_workers=args.workers, pin_memory=False, sampler=train_sampler)
 
         testloader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.test_batch, shuffle=False,
-            num_workers=args.workers, pin_memory=True)
+            num_workers=args.workers, pin_memory=False)
         ############################## data loader for imagenet based upon file names ######################
 
-
-        
+        load_model_ses = ses-1
         if(ses==0):
             path = get_path(args.L,args.M,args.N)*0 
             path[:,0] = 1
@@ -187,18 +220,23 @@ def main():
             train_path = path.copy()
             infer_path = path.copy()
         else:
-            load_test_case = get_best_model(ses-1, args.checkpoint)
-            if(ses%args.jump==0):   #get a new path
-                fixed_path = np.load(args.checkpoint+"/fixed_path_"+str(ses-1)+"_"+str(load_test_case)+".npy")
+            if ses >= 10:   # in novel testing phase
+                load_model_ses = 9      # load the model after continual training phase
+
+            load_test_case = get_best_model(load_model_ses, args.checkpoint)
+            print(f'get_best_model: {load_model_ses}, with test case: {load_test_case}')
+            if(ses%args.jump==0) or ses >= 10:   # get a new path             for all novel testing,
+                fixed_path = np.load(args.checkpoint+"/fixed_path_"+str(load_model_ses)+"_"+str(load_test_case)+".npy")
                 train_path = get_path(args.L,args.M,args.N)*0 
                 path = get_path(args.L,args.M,args.N)
             else:
-                if((ses//args.jump)*2==0):
+                if((ses//args.jump)*2==0):  # ses == 1
                     fixed_path = get_path(args.L,args.M,args.N)*0
                 else:
                     load_test_case_x = get_best_model((ses//args.jump)*2-1, args.checkpoint)
+                    print(f'get_best_model_: {(ses//args.jump)*2-1}, with test case: {load_test_case_x}')
                     fixed_path = np.load(args.checkpoint+"/fixed_path_"+str((ses//args.jump)*2-1)+"_"+str(load_test_case_x)+".npy")
-                path = np.load(args.checkpoint+"/path_"+str(ses-1)+"_"+str(load_test_case)+".npy")
+                path = np.load(args.checkpoint+"/path_"+str(load_model_ses)+"_"+str(load_test_case)+".npy")
             
                 train_path = get_path(args.L,args.M,args.N)*0 
             infer_path = get_path(args.L,args.M,args.N)*0 
@@ -233,21 +271,19 @@ def main():
 
         
 
-        print(trn_fnames.shape)
-        print(trn_labs.shape)
-        print(val_fnames.shape)
-        print(val_labs.shape)
+        print('trn_instances len:', len(trn_instances))
+        print('val_instances len:', len(val_instances))
         if(ses>0):
-            print(ex_fnames.shape)
-            print(ex_labs.shape)
+            print('ex_instances len:', len(ex_instances))
         
         
         
         args.sess=ses      
         if ses>0: 
-            path_model=os.path.join(args.savepoint, 'session_'+str(ses-1)+'_'+str(load_test_case)+'_model_best.pth.tar')
+            path_model=os.path.join(args.savepoint, 'session_'+str(load_model_ses)+'_'+str(load_test_case)+'_model_best.pth.tar')
             prev_best=torch.load(path_model)
             model.load_state_dict(prev_best['state_dict'])
+            print(f'load model from {path_model}.')
 
 
         main_learner=Learner(model=model,args=args,trainloader=trainloader,

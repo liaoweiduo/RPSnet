@@ -110,3 +110,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+.idea/*
+*.pkl
+*/*.pkl
+data/*
+prepare/meta_ILSVRC.pkl
+prepare/cifar100_10.pkl

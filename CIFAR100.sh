@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 
 CUDA_VISIBLE_DEVICES=0 python3 cifar.py 0 0 & 
