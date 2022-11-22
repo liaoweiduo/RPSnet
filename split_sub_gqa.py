@@ -42,8 +42,8 @@ from avalanche.benchmarks.utils import PathsDataset
 
 
 class args:
-    epochs = 100
-    checkpoint = "results/subgqa/RPSnet-2way-10tasks"
+    epochs = 60
+    checkpoint = "results/subgqa/RPSnet"
     savepoint = ""
     data = '../datasets/gqa/allImages/images'
     labels_data = "prepare/subgqa_color_train.pkl"

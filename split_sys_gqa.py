@@ -42,8 +42,8 @@ from avalanche.benchmarks.utils import PathsDataset
 
 
 class args:
-    epochs = 100
-    checkpoint = "results/sysgqa/RPSnet-2way-10tasks"
+    epochs = 60
+    checkpoint = "results/sysgqa/RPSnet"
     savepoint = ""
     data = '../datasets/gqa/allImages/images'
     labels_data = "prepare/sysgqa_train.pkl"
@@ -54,7 +54,7 @@ class args:
     jump = 2
     rigidness_coff = 10
     dataset = "SYSGQA"
-   
+
     L = 9
     N = 1
     lr = 0.001
