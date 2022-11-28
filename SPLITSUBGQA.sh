@@ -115,10 +115,10 @@ do
   CUDA_VISIBLE_DEVICES=1 python3 split_sub_gqa.py 1 $i_n &
   CUDA_VISIBLE_DEVICES=2 python3 split_sub_gqa.py 2 $i_n &
   CUDA_VISIBLE_DEVICES=3 python3 split_sub_gqa.py 3 $i_n &
-  CUDA_VISIBLE_DEVICES=4 python3 split_sub_gqa.py 4 $i_n &
-  CUDA_VISIBLE_DEVICES=5 python3 split_sub_gqa.py 5 $i_n &
-  CUDA_VISIBLE_DEVICES=6 python3 split_sub_gqa.py 6 $i_n &
-  CUDA_VISIBLE_DEVICES=7 python3 split_sub_gqa.py 7 $i_n
+  CUDA_VISIBLE_DEVICES=0 python3 split_sub_gqa.py 4 $i_n &
+  CUDA_VISIBLE_DEVICES=1 python3 split_sub_gqa.py 5 $i_n &
+  CUDA_VISIBLE_DEVICES=2 python3 split_sub_gqa.py 6 $i_n &
+  CUDA_VISIBLE_DEVICES=3 python3 split_sub_gqa.py 7 $i_n
 
   sleep 20
 
@@ -132,10 +132,10 @@ do
   CUDA_VISIBLE_DEVICES=1 python3 split_sub_gqa.py 1 $i_nn &
   CUDA_VISIBLE_DEVICES=2 python3 split_sub_gqa.py 2 $i_nn &
   CUDA_VISIBLE_DEVICES=3 python3 split_sub_gqa.py 3 $i_nn &
-  CUDA_VISIBLE_DEVICES=4 python3 split_sub_gqa.py 4 $i_nn &
-  CUDA_VISIBLE_DEVICES=5 python3 split_sub_gqa.py 5 $i_nn &
-  CUDA_VISIBLE_DEVICES=6 python3 split_sub_gqa.py 6 $i_nn &
-  CUDA_VISIBLE_DEVICES=7 python3 split_sub_gqa.py 7 $i_nn
+  CUDA_VISIBLE_DEVICES=0 python3 split_sub_gqa.py 4 $i_nn &
+  CUDA_VISIBLE_DEVICES=1 python3 split_sub_gqa.py 5 $i_nn &
+  CUDA_VISIBLE_DEVICES=2 python3 split_sub_gqa.py 6 $i_nn &
+  CUDA_VISIBLE_DEVICES=3 python3 split_sub_gqa.py 7 $i_nn
 
   sleep 20
 
