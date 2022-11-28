@@ -124,7 +124,7 @@ do
 
 done
 
- non novel testing phase
+# non novel testing phase
 
 for i_nn in {610..1209}
 do
