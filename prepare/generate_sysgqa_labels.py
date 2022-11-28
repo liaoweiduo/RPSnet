@@ -14,12 +14,9 @@ import torchvision
 import pickle
 import json
 
-mode = 'train'      # option: [train, novel_test, non_novel_test]
+mode = 'non_novel_test'      # option: [train, novel_test, non_novel_test]
 
 data_json_dir = '../../datasets/gqa/sys_gqa_json/'
-
-seed = 1234
-rng = np.random.RandomState(seed)
 
 train_num_class = 20
 novel_test_num_class = 5
@@ -38,28 +35,7 @@ else:
 
 class_per_task = 2
 
-'''-----------'''
-'''Train phase'''
-'''-----------'''
-
-train_classes_in_exp = [[16, 15], [17, 14], [1, 9], [0, 12], [6, 7], [5, 13], [2, 18], [11, 3], [8, 4], [10, 19]]
-train_classes_related = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [16, 17], [18, 19]]
-
-'''----------------'''
-'''Novel test phase'''
-'''----------------'''
-# TBD to random generate
-novel_test_classes_in_exp = [[24, 20], [23, 22], [22, 20], [21, 24], [21, 20], [22, 23], [24, 20], [24, 21],
-                             [20, 21], [24, 22]]
-novel_test_classes_related = [[20, 21] for _ in range(novel_test_task)]
-
-'''--------------------'''
-'''Non Novel test phase'''
-'''--------------------'''
-# TBD to random generate
-non_novel_test_classes_in_exp = [[16, 15], [17, 14], [1, 9], [0, 12], [6, 7], [5, 13], [2, 18],
-                                 [11, 3], [8, 4], [10, 19]]
-non_novel_test_classes_related = [[20, 21] for _ in range(novel_test_task)]
+num_samples_each_label = 5      # few-shot support set size for each label,  total 10 samples
 
 if mode == 'train':
     '''Load train information'''
@@ -185,58 +161,117 @@ def get_ind_sessions(ytrain, ytest):
     #     st = endd
     #     endd = st + class_per_task
 
-    sessions = [[classes] for classes in train_classes_in_exp]
-    sessions.extend([[classes] for classes in novel_test_classes_in_exp])
-    sessions.extend([[classes] for classes in non_novel_test_classes_in_exp])
-    # [[[16, 15]], [[17, 14]],...]
-    if mode == 'train':
-        session_id_offset = 0
-    elif mode == 'novel_test':
-        session_id_offset = train_task  # 10
-    else:
-        session_id_offset = train_task + novel_test_task    # 10+600
-
-    memb = 5000
-
     indices_final = dict()
 
-    for session in range(session_id_offset, session_id_offset + num_task):
+    '''-----------'''
+    '''Train phase'''
+    '''-----------'''
+    train_classes_in_exp = [[16, 15], [17, 14], [1, 9], [0, 12], [6, 7], [5, 13], [2, 18], [11, 3], [8, 4], [10, 19]]
+    train_classes_related = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [16, 17], [18, 19]]
 
-        ind_curr = flatten_list([np.where(ytrain == c)[0] for c in flatten_list(sessions[session])])
+    sessions = [[classes] for classes in train_classes_in_exp]
 
+    '''----------------'''
+    '''Novel test phase'''
+    '''----------------'''
+    seed = 1234
+    rng = np.random.RandomState(seed)
+    novel_test_classes = np.array([20, 21, 22, 23, 24])
+    classes_in_exp = []
+    for task_idx in range(novel_test_task):
+        task_classes = rng.choice(novel_test_classes, class_per_task, replace=False)
+        classes_in_exp.append(task_classes)
 
-        # TBD, for few-shot testing, only sample some train samples for each class.
+        if mode == 'novel_test':
+            '''select num_samples_each_label*num_ways_each_task images for each exp'''
+            ind_curr = []
+            for cls_idx in task_classes:
+                ind_curr.append(rng.choice(np.where(ytrain == int(cls_idx))[0], num_samples_each_label, replace=False))
+            ind_curr = np.concatenate(ind_curr)
 
+            exm = []
 
-        if session == 0 or session >= train_task:       # first and all testing do not use mem
-            ind_all = ind_curr
-        else:
-            ind_prev = indices_final[session - 1]['exmp']
-            ind_all = np.append(ind_curr, ind_prev)
+            session_test_ind = flatten_list([np.where(ytest == c)[0] for c in flatten_list([task_classes])])
 
-        exm = []
-        if session < train_task:        # replay memory is only for train phase
-            '''random sample some instances from each seen class'''
-            seen_classes = flatten_list(sessions[:session+1])
-            Ncl = len(seen_classes)
-            n_cl = int(memb / Ncl)
-            ys = ytrain[np.array(ind_all)]
-            for ii in seen_classes:
-                ind_one_cl = ind_all[np.where(ys == ii)]
-                rng.shuffle(ind_one_cl)
-                exm.append(ind_one_cl[:n_cl])
-            exm = flatten_list(exm)
+            indices_final[task_idx + train_task] = {'curent': ind_curr, 'exmp': exm, 'test': session_test_ind}
+            # from 10-609
 
-        if session >= train_task:       # novel test phase only test on self.
-            all_test_classes = sessions[session][0]
-            # np.arange(class_per_task * session, class_per_task * (session + 1)).astype(int)
-            session_test_ind = flatten_list([np.where(ytest == c)[0] for c in all_test_classes])
-        else:
-            all_test_classes = flatten_list(sessions[:session+1])
-            # np.arange(0, class_per_task * (session + 1)).astype(int)
-            session_test_ind = flatten_list([np.where(ytest == c)[0] for c in all_test_classes])
+    novel_test_classes_in_exp = np.stack(classes_in_exp)
+    novel_test_classes_related = np.array([[20, 21] for _ in range(novel_test_task)])
 
-        indices_final[session] = {'curent': ind_curr, 'exmp': exm, 'test': session_test_ind}
+    sessions.extend([[classes] for classes in novel_test_classes_in_exp])
+
+    '''--------------------'''
+    '''Non Novel test phase'''
+    '''--------------------'''
+    seed = 1234
+    rng = np.random.RandomState(seed)
+    non_novel_test_classes = np.arange(train_num_class)  # [0-19]
+    classes_in_exp = []
+    for task_idx in range(non_novel_test_task):
+        task_classes = rng.choice(non_novel_test_classes, class_per_task, replace=False)
+        classes_in_exp.append(task_classes)
+
+        if mode == 'non_novel_test':
+            '''select num_samples_each_label*num_ways_each_task images for each exp'''
+            ind_curr = []
+            for cls_idx in task_classes:
+                ind_curr.append(rng.choice(np.where(ytrain == int(cls_idx))[0], num_samples_each_label, replace=False))
+            ind_curr = np.concatenate(ind_curr)
+
+            exm = []
+
+            session_test_ind = flatten_list([np.where(ytest == c)[0] for c in flatten_list([task_classes])])
+
+            indices_final[task_idx + novel_test_task + train_task] = {'curent': ind_curr, 'exmp': exm, 'test': session_test_ind}
+            # from 610-1209
+
+    non_novel_test_classes_in_exp = np.stack(classes_in_exp)
+    non_novel_test_classes_related = np.array([[20, 21] for _ in range(non_novel_test_task)])
+
+    sessions.extend([[classes] for classes in non_novel_test_classes_in_exp])
+
+    indices_final['sessions'] = sessions
+
+    if mode == 'train':
+        memb = 5000
+
+        seed = 1234
+        rng = np.random.RandomState(seed)
+
+        for session in range(train_task):
+
+            ind_curr = flatten_list([np.where(ytrain == c)[0] for c in flatten_list(sessions[session])])
+
+            if session == 0 or session >= train_task:       # first and all testing do not use mem
+                ind_all = ind_curr
+            else:
+                ind_prev = indices_final[session - 1]['exmp']
+                ind_all = np.append(ind_curr, ind_prev)
+
+            exm = []
+            if session < train_task:        # replay memory is only for train phase
+                '''random sample some instances from each seen class'''
+                seen_classes = flatten_list(sessions[:session+1])
+                Ncl = len(seen_classes)
+                n_cl = int(memb / Ncl)
+                ys = ytrain[np.array(ind_all)]
+                for ii in seen_classes:
+                    ind_one_cl = ind_all[np.where(ys == ii)]
+                    rng.shuffle(ind_one_cl)
+                    exm.append(ind_one_cl[:n_cl])
+                exm = flatten_list(exm)
+
+            if session >= train_task:       # novel test phase only test on self.
+                all_test_classes = sessions[session][0]
+                # np.arange(class_per_task * session, class_per_task * (session + 1)).astype(int)
+                session_test_ind = flatten_list([np.where(ytest == c)[0] for c in all_test_classes])
+            else:
+                all_test_classes = flatten_list(sessions[:session+1])
+                # np.arange(0, class_per_task * (session + 1)).astype(int)
+                session_test_ind = flatten_list([np.where(ytest == c)[0] for c in all_test_classes])
+
+            indices_final[session] = {'curent': ind_curr, 'exmp': exm, 'test': session_test_ind}
     return indices_final
 
 

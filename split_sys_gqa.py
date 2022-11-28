@@ -46,7 +46,7 @@ class args:
     checkpoint = "results/sysgqa/RPSnet"
     savepoint = ""
     data = '../datasets/gqa/allImages/images'
-    labels_data = "prepare/sysgqa_train.pkl"
+    # labels_data = "prepare/sysgqa_train.pkl"
     
     num_class = 25
     class_per_task = 2
@@ -101,8 +101,17 @@ def main():
 
     start_sess = int(sys.argv[2])
     test_case = sys.argv[1]
-    
+
     args.test_case = test_case
+
+    if start_sess < 10:
+        args.labels_data = "prepare/sysgqa_train.pkl"
+    elif start_sess < 610:
+        args.labels_data = "prepare/sysgqa_novel_test.pkl"
+    elif start_sess < 1210:
+        args.labels_data = "prepare/sysgqa_non_novel_test.pkl"
+    else:
+        raise Exception(f'sess error: {start_sess}.')
 
     a=pickle.load(open(args.labels_data,'rb'))
 
@@ -169,10 +178,8 @@ def main():
             '''----------------'''
             '''Novel test phase'''
             '''----------------'''
-            novel_test_classes_in_exp = [[24, 20], [23, 22], [22, 20], [21, 24], [21, 20], [22, 23], [24, 20],
-                                         [24, 21], [20, 21], [24, 22]]
-            novel_test_classes_related = [[20, 21], [20, 21], [20, 21], [20, 21], [20, 21], [20, 21], [20, 21],
-                                          [20, 21], [20, 21], [20, 21]]
+            if ses >= 10:
+                train_classes = a['sessions'][ses][0]
 
             def target_transform_(target):
                 if ses < 10:  # Training phase
@@ -180,8 +187,8 @@ def main():
                     for s in range(ses+1):
                         class_mapping[train_classes_in_exp[s]] = train_classes_related[s]
                 else:       # Novel testing phase
-                    class_mapping = np.array([None for _ in range(max(novel_test_classes_in_exp[ses-10]) + 1)])
-                    class_mapping[novel_test_classes_in_exp[ses-10]] = novel_test_classes_related[ses-10]
+                    class_mapping = np.array([None for _ in range(max(train_classes) + 1)])
+                    class_mapping[train_classes] = [20, 21]
 
                 return class_mapping[target]
 
