@@ -103,13 +103,15 @@ class Learner():
             # save model
             is_best = self.test_acc > self.best_acc
             self.best_acc = max(self.test_acc, self.best_acc)
-            self.save_checkpoint({
-                    'epoch': epoch + 1,
-                    'state_dict': self.model.state_dict(),
-                    'acc': self.test_acc,
-                    'best_acc': self.best_acc,
-                    'optimizer' : self.optimizer.state_dict(),
-            }, is_best, checkpoint=self.args.savepoint,filename='session_'+str(self.args.sess)+'_' + str(self.args.test_case)+'_checkpoint.pth.tar',session=self.args.sess, test_case=self.args.test_case)
+            if not hasattr(self.args, 'num_train_task') or self.args.sess < self.args.num_train_task:
+                # only training task need to store checkpoint
+                self.save_checkpoint({
+                        'epoch': epoch + 1,
+                        'state_dict': self.model.state_dict(),
+                        'acc': self.test_acc,
+                        'best_acc': self.best_acc,
+                        'optimizer' : self.optimizer.state_dict(),
+                }, is_best, checkpoint=self.args.savepoint,filename='session_'+str(self.args.sess)+'_' + str(self.args.test_case)+'_checkpoint.pth.tar',session=self.args.sess, test_case=self.args.test_case)
         
         logger.close()
         logger.plot()

@@ -73,49 +73,70 @@
 #CUDA_VISIBLE_DEVICES=5 python3 split_sys_gqa.py 5 6 &
 #CUDA_VISIBLE_DEVICES=6 python3 split_sys_gqa.py 6 6 &
 #CUDA_VISIBLE_DEVICES=7 python3 split_sys_gqa.py 7 6
-
-sleep 20
-CUDA_VISIBLE_DEVICES=0 python3 split_sys_gqa.py 0 7 &
-CUDA_VISIBLE_DEVICES=1 python3 split_sys_gqa.py 1 7 &
-CUDA_VISIBLE_DEVICES=2 python3 split_sys_gqa.py 2 7 &
-CUDA_VISIBLE_DEVICES=3 python3 split_sys_gqa.py 3 7 &
-CUDA_VISIBLE_DEVICES=4 python3 split_sys_gqa.py 4 7 &
-CUDA_VISIBLE_DEVICES=5 python3 split_sys_gqa.py 5 7 &
-CUDA_VISIBLE_DEVICES=6 python3 split_sys_gqa.py 6 7 &
-CUDA_VISIBLE_DEVICES=7 python3 split_sys_gqa.py 7 7
-
-sleep 20
-CUDA_VISIBLE_DEVICES=0 python3 split_sys_gqa.py 0 8 &
-CUDA_VISIBLE_DEVICES=1 python3 split_sys_gqa.py 1 8 &
-CUDA_VISIBLE_DEVICES=2 python3 split_sys_gqa.py 2 8 &
-CUDA_VISIBLE_DEVICES=3 python3 split_sys_gqa.py 3 8 &
-CUDA_VISIBLE_DEVICES=4 python3 split_sys_gqa.py 4 8 &
-CUDA_VISIBLE_DEVICES=5 python3 split_sys_gqa.py 5 8 &
-CUDA_VISIBLE_DEVICES=6 python3 split_sys_gqa.py 6 8 &
-CUDA_VISIBLE_DEVICES=7 python3 split_sys_gqa.py 7 8
-
-sleep 20
-CUDA_VISIBLE_DEVICES=0 python3 split_sys_gqa.py 0 9 &
-CUDA_VISIBLE_DEVICES=1 python3 split_sys_gqa.py 1 9 &
-CUDA_VISIBLE_DEVICES=2 python3 split_sys_gqa.py 2 9 &
-CUDA_VISIBLE_DEVICES=3 python3 split_sys_gqa.py 3 9 &
-CUDA_VISIBLE_DEVICES=4 python3 split_sys_gqa.py 4 9 &
-CUDA_VISIBLE_DEVICES=5 python3 split_sys_gqa.py 5 9 &
-CUDA_VISIBLE_DEVICES=6 python3 split_sys_gqa.py 6 9 &
-CUDA_VISIBLE_DEVICES=7 python3 split_sys_gqa.py 7 9
-
-sleep 20
-
+#
+#sleep 20
+#CUDA_VISIBLE_DEVICES=0 python3 split_sys_gqa.py 0 7 &
+#CUDA_VISIBLE_DEVICES=1 python3 split_sys_gqa.py 1 7 &
+#CUDA_VISIBLE_DEVICES=2 python3 split_sys_gqa.py 2 7 &
+#CUDA_VISIBLE_DEVICES=3 python3 split_sys_gqa.py 3 7 &
+#CUDA_VISIBLE_DEVICES=4 python3 split_sys_gqa.py 4 7 &
+#CUDA_VISIBLE_DEVICES=5 python3 split_sys_gqa.py 5 7 &
+#CUDA_VISIBLE_DEVICES=6 python3 split_sys_gqa.py 6 7 &
+#CUDA_VISIBLE_DEVICES=7 python3 split_sys_gqa.py 7 7
+#
+#sleep 20
+#CUDA_VISIBLE_DEVICES=0 python3 split_sys_gqa.py 0 8 &
+#CUDA_VISIBLE_DEVICES=1 python3 split_sys_gqa.py 1 8 &
+#CUDA_VISIBLE_DEVICES=2 python3 split_sys_gqa.py 2 8 &
+#CUDA_VISIBLE_DEVICES=3 python3 split_sys_gqa.py 3 8 &
+#CUDA_VISIBLE_DEVICES=4 python3 split_sys_gqa.py 4 8 &
+#CUDA_VISIBLE_DEVICES=5 python3 split_sys_gqa.py 5 8 &
+#CUDA_VISIBLE_DEVICES=6 python3 split_sys_gqa.py 6 8 &
+#CUDA_VISIBLE_DEVICES=7 python3 split_sys_gqa.py 7 8
+#
+#sleep 20
+#CUDA_VISIBLE_DEVICES=0 python3 split_sys_gqa.py 0 9 &
+#CUDA_VISIBLE_DEVICES=1 python3 split_sys_gqa.py 1 9 &
+#CUDA_VISIBLE_DEVICES=2 python3 split_sys_gqa.py 2 9 &
+#CUDA_VISIBLE_DEVICES=3 python3 split_sys_gqa.py 3 9 &
+#CUDA_VISIBLE_DEVICES=4 python3 split_sys_gqa.py 4 9 &
+#CUDA_VISIBLE_DEVICES=5 python3 split_sys_gqa.py 5 9 &
+#CUDA_VISIBLE_DEVICES=6 python3 split_sys_gqa.py 6 9 &
+#CUDA_VISIBLE_DEVICES=7 python3 split_sys_gqa.py 7 9
+#
+#sleep 20
 
 
 # novel testing phase
 
-#sleep 20
-#CUDA_VISIBLE_DEVICES=0 python3 split_sys_gqa.py 0 10 &
-#CUDA_VISIBLE_DEVICES=1 python3 split_sys_gqa.py 1 10 &
-#CUDA_VISIBLE_DEVICES=2 python3 split_sys_gqa.py 2 10 &
-#CUDA_VISIBLE_DEVICES=3 python3 split_sys_gqa.py 3 10 &
-#CUDA_VISIBLE_DEVICES=4 python3 split_sys_gqa.py 4 10 &
-#CUDA_VISIBLE_DEVICES=5 python3 split_sys_gqa.py 5 10 &
-#CUDA_VISIBLE_DEVICES=6 python3 split_sys_gqa.py 6 10 &
-#CUDA_VISIBLE_DEVICES=7 python3 split_sys_gqa.py 7 10
+for i_n in {10..609}    #
+do
+  CUDA_VISIBLE_DEVICES=0 python3 split_sys_gqa.py 0 $i_n &
+  CUDA_VISIBLE_DEVICES=1 python3 split_sys_gqa.py 1 $i_n &
+  CUDA_VISIBLE_DEVICES=2 python3 split_sys_gqa.py 2 $i_n &
+  CUDA_VISIBLE_DEVICES=3 python3 split_sys_gqa.py 3 $i_n &
+  CUDA_VISIBLE_DEVICES=4 python3 split_sys_gqa.py 4 $i_n &
+  CUDA_VISIBLE_DEVICES=5 python3 split_sys_gqa.py 5 $i_n &
+  CUDA_VISIBLE_DEVICES=6 python3 split_sys_gqa.py 6 $i_n &
+  CUDA_VISIBLE_DEVICES=7 python3 split_sys_gqa.py 7 $i_n
+
+  sleep 20
+
+done
+
+# non novel testing phase
+
+for i_nn in {610..1209}
+do
+  CUDA_VISIBLE_DEVICES=0 python3 split_sys_gqa.py 0 $i_nn &
+  CUDA_VISIBLE_DEVICES=1 python3 split_sys_gqa.py 1 $i_nn &
+  CUDA_VISIBLE_DEVICES=2 python3 split_sys_gqa.py 2 $i_nn &
+  CUDA_VISIBLE_DEVICES=3 python3 split_sys_gqa.py 3 $i_nn &
+  CUDA_VISIBLE_DEVICES=4 python3 split_sys_gqa.py 4 $i_nn &
+  CUDA_VISIBLE_DEVICES=5 python3 split_sys_gqa.py 5 $i_nn &
+  CUDA_VISIBLE_DEVICES=6 python3 split_sys_gqa.py 6 $i_nn &
+  CUDA_VISIBLE_DEVICES=7 python3 split_sys_gqa.py 7 $i_nn
+
+  sleep 20
+
+done

@@ -54,6 +54,7 @@ class args:
     jump = 2
     rigidness_coff = 10
     dataset = "SYSGQA"
+    num_train_task = 10
 
     L = 9
     N = 1
@@ -309,7 +310,7 @@ def main():
                         fixed_path[j,i]=1
         np.save(args.checkpoint+"/fixed_path_"+str(ses)+"_"+str(test_case)+".npy", fixed_path)
         
-        best_model = get_best_model(ses, args.checkpoint)
+        # best_model = get_best_model(ses, args.checkpoint)
         
         
     print('done with session {:d}'.format(ses))

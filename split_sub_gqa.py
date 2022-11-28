@@ -54,6 +54,7 @@ class args:
     jump = 2
     rigidness_coff = 10
     dataset = "SUBGQA"
+    num_train_task = 10
    
     L = 9
     N = 1
