@@ -17,12 +17,215 @@ from __future__ import print_function
 # import torchvision.transforms as transforms
 # import torchvision.datasets as datasets
 # import copy
-# import torch
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 # import torch.optim as optim
 # from torch.autograd import Variable
 # from torch.autograd import gradcheck
+
+
+class MultiHeadRPS_net(nn.Module):
+
+    def __init__(self, args):
+        super(MultiHeadRPS_net, self).__init__()
+        self.args = args
+        self.final_layers = []
+        self.init(None)
+
+    def init(self, best_path):
+
+        """Initialize all parameters"""
+        self.conv1 = []
+        self.conv2 = []
+        self.conv3 = []
+        self.conv4 = []
+        self.conv5 = []
+        self.conv6 = []
+        self.conv7 = []
+        self.conv8 = []
+        self.conv9 = []
+        self.fc1 = []
+
+        # conv1
+        for i in range(self.args.M):
+            exec("self.m1" + str(
+                i) + " = nn.Sequential(nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3),nn.BatchNorm2d(64),nn.ReLU())")
+            exec("self.conv1.append(self.m1" + str(i) + ")")
+
+        # conv2
+        for i in range(self.args.M):
+            exec("self.m2" + str(
+                i) + " = nn.Sequential(nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(64),nn.ReLU(), nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(64))")
+            exec("self.conv2.append(self.m2" + str(i) + ")")
+
+        # conv3
+        for i in range(self.args.M):
+            exec("self.m3" + str(
+                i) + " = nn.Sequential(nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(64),nn.ReLU(), nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(64))")
+            exec("self.conv3.append(self.m3" + str(i) + ")")
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        # conv4
+        for i in range(self.args.M):
+            exec("self.m4" + str(
+                i) + " = nn.Sequential(nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(128),nn.ReLU(), nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(128))")
+            exec("self.conv4.append(self.m4" + str(i) + ")")
+        exec("self.m4" + str(
+            "x") + " = nn.Sequential(nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(128),nn.ReLU())")
+        exec("self.conv4.append(self.m4" + str("x") + ")")
+
+        # conv5
+        for i in range(self.args.M):
+            exec("self.m5" + str(
+                i) + " = nn.Sequential(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(128),nn.ReLU(), nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(128))")
+            exec("self.conv5.append(self.m5" + str(i) + ")")
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        # conv6
+        for i in range(self.args.M):
+            exec("self.m6" + str(
+                i) + " = nn.Sequential(nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(256),nn.ReLU(), nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(256))")
+            exec("self.conv6.append(self.m6" + str(i) + ")")
+        exec("self.m6" + str(
+            "x") + " = nn.Sequential(nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(256),nn.ReLU())")
+        exec("self.conv6.append(self.m6" + str("x") + ")")
+
+        # conv7
+        for i in range(self.args.M):
+            exec("self.m7" + str(
+                i) + " = nn.Sequential(nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(256),nn.ReLU(), nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(256))")
+            exec("self.conv7.append(self.m7" + str(i) + ")")
+        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        # conv8
+        for i in range(self.args.M):
+            exec("self.m8" + str(
+                i) + " = nn.Sequential(nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(512),nn.ReLU(), nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(512))")
+            exec("self.conv8.append(self.m8" + str(i) + ")")
+        exec("self.m8" + str(
+            "x") + " = nn.Sequential(nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(512),nn.ReLU())")
+        exec("self.conv8.append(self.m8" + str("x") + ")")
+
+        # conv9
+        for i in range(self.args.M):
+            exec("self.m9" + str(
+                i) + " = nn.Sequential(nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(512),nn.ReLU(), nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),nn.BatchNorm2d(512))")
+            exec("self.conv9.append(self.m9" + str(i) + ")")
+
+        # avg pool
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+
+        if len(self.final_layers) < 1:
+            if self.args.return_task_id:    # task-IL
+                for i in range(self.args.num_train_task):
+                    exec(f"self.final_layer{i+1} = nn.Linear(512, self.args.class_per_task)")    # 10
+                    exec(f"self.final_layers.append(self.final_layer{i+1})")
+                for i in range(self.args.num_train_task, self.args.num_train_task + self.args.num_test_task):
+                    exec(f"self.final_layer{i+1} = nn.Linear(512, self.args.num_test_class)")    # 10
+                    exec(f"self.final_layers.append(self.final_layer{i+1})")
+            else:    # class-IL
+                exec(f"self.final_layer1 = nn.Linear(512, self.args.class_per_task*self.args.num_train_task)")    # 100
+                exec(f"self.final_layers.append(self.final_layer1)")
+                for i in range(1, 1+self.args.num_test_task):
+                    exec(f"self.final_layer{i+1} = nn.Linear(512, self.args.num_test_class)")    # 10
+                    exec(f"self.final_layers.append(self.final_layer{i+1})")
+
+        self.cuda()
+
+    def freeze_feature_extractor(self):
+        params_set = [self.model.conv1, self.model.conv2, self.model.conv3, self.model.conv4, self.model.conv5,
+                      self.model.conv6, self.model.conv7, self.model.conv8, self.model.conv9]
+        for j, params in enumerate(params_set):
+            for i, param in enumerate(params):
+                param.requires_grad = False
+
+    def forward(self, x, path, last):
+
+        M = self.args.M
+        div = 1
+        p = 0.5
+
+        y = self.conv1[0](x)
+        for j in range(1, self.args.M):
+            if (path[0][j] == 1):
+                y += self.conv1[j](x)
+        x = F.relu(y)
+
+        y = self.conv2[0](x)
+        for j in range(1, self.args.M):
+            if (path[1][j] == 1):
+                y += self.conv2[j](x)
+        x = y + x
+        x = F.relu(x)
+
+        y = self.conv3[0](x)
+        for j in range(1, self.args.M):
+            if (path[2][j] == 1):
+                y += self.conv3[j](x)
+        x = y + x
+        x = F.relu(x)
+        x = self.pool1(x)
+
+        y = self.conv4[-1](x)
+        for j in range(self.args.M):
+            if (path[3][j] == 1):
+                y += self.conv4[j](x)
+        x = y
+        x = F.relu(x)
+
+        y = self.conv5[0](x)
+        for j in range(1, self.args.M):
+            if (path[4][j] == 1):
+                y += self.conv5[j](x)
+        x = y + x
+        x = F.relu(x)
+        x = self.pool2(x)
+
+        y = self.conv6[-1](x)
+        for j in range(self.args.M):
+            if (path[5][j] == 1):
+                y += self.conv6[j](x)
+        x = y
+        x = F.relu(x)
+
+        y = self.conv7[0](x)
+        for j in range(1, self.args.M):
+            if (path[6][j] == 1):
+                y += self.conv7[j](x)
+        x = y
+        x = F.relu(x)
+        x = self.pool3(x)
+
+        y = self.conv8[-1](x)
+        for j in range(self.args.M):
+            if (path[7][j] == 1):
+                y += self.conv8[j](x)
+        x = y
+        x = F.relu(x)
+
+        y = self.conv9[0](x)
+        for j in range(1, self.args.M):
+            if (path[8][j] == 1):
+                y += self.conv9[j](x)
+        x = y + x
+        x = F.relu(x)
+        x = self.pool4(x)
+
+        # x = F.avg_pool2d(x, (7, 7), stride=(1, 1))
+        x = self.avgpool(x)
+        x = x.view(-1, 512)
+
+        if type(last) is int:
+            x = self.final_layers[last](x)
+        else:
+            o = []
+            for x_idx in range(x.shape[0]):
+                o.append(self.final_layers[last[x_idx]](x[x_idx: x_idx+1]))   # forward classifier sample by sample
+            x = torch.cat(o)
+
+        return x
 
 
 class RPS_net(nn.Module):

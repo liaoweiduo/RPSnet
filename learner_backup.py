@@ -53,38 +53,10 @@ class Learner():
                         trainable_params.append(p)
                     else:
                         param.requires_grad = False
-
-        if self.args.sess < self.args.num_train_task:       # continual train
-            if self.args.return_task_id:        # task-IL
-                for j in range(self.args.sess+1):
-                    p = {'params': self.model.final_layers[j].parameters()}     # all trained classifiers
-                    trainable_params.append(p)
-            else:       # class-IL
-                p = {'params': self.model.final_layers[0].parameters()}  # classifier
-                trainable_params.append(p)
-        else:       # fewshot test
-            if self.args.return_task_id:        # task-IL
-                offset = self.args.num_train_task
-            else:       # class-IL
-                offset = 1
-
-            if args.sess < args.num_train_task + 1 * args.num_test_task:  # sys
-                sess_offset = args.num_train_task
-                mode = 'sys'
-            elif args.sess < args.num_train_task + 2 * args.num_test_task:  # pro
-                sess_offset = args.num_train_task + 1 * args.num_test_task
-                mode = 'pro'
-            elif args.sess < args.num_train_task + 3 * args.num_test_task:  # sub
-                sess_offset = args.num_train_task + 2 * args.num_test_task
-                mode = 'sub'
-            elif args.sess < args.num_train_task + 4 * args.num_test_task:  # non
-                sess_offset = args.num_train_task + 3 * args.num_test_task
-                mode = 'non'
-            elif args.sess < args.num_train_task + 5 * args.num_test_task:  # noc
-                sess_offset = args.num_train_task + 4 * args.num_test_task
-                mode = 'noc'
-            p = {'params': self.model.final_layers[self.args.sess - sess_offset + offset].parameters()}
-            trainable_params.append(p)
+                    
+                    
+        p = {'params': self.model.final_layers[-1].parameters()}        # classifier
+        trainable_params.append(p)
         print("Number of layers being trained : " , len(trainable_params))
         
         
@@ -159,31 +131,20 @@ class Learner():
         top5 = AverageMeter()
         end = time.time()
 
-        if self.args.sess >= self.args.num_train_task:      # for novel testing
-            num_class = self.args.num_test_class    # for task-IL and class-IL num_class = 10
-            num_old_class = self.args.num_test_class if self.args.sess > self.args.num_train_task else self.args.class_per_task
-            num_total_class = num_class
-        else:   # continual training
-            if self.args.return_task_id:        # task-IL
-                num_class = self.args.class_per_task        # 10
-                num_old_class = self.args.class_per_task
-                num_total_class = self.args.class_per_task
-            else:       # class-IL
-                num_class = self.args.class_per_task * (self.args.sess + 1)
-                num_old_class = self.args.class_per_task * self.args.sess
-                num_total_class = self.args.class_per_task * self.args.num_train_task       # 100
-
+        if self.args.sess > 9:  # for novel testing, label is fixed to [20, 21]
+            sess_pretend = 10   # so all sess for loss and acc is fixed to 10
+        else:
+            sess_pretend = self.args.sess
 
         bar = Bar('Processing', max=len(self.trainloader))
-        for batch_idx, (inputs, targets, task_ids) in enumerate(self.trainloader):
+        for batch_idx, (inputs, targets) in enumerate(self.trainloader):
             # measure data loading time
             data_time.update(time.time() - end)
 
             # '''DEBUG'''
             # print(f'DEBUG targets: {targets}')
             # '''DEBUG'''
-            targets = targets.long()
-            targets_one_hot = torch.FloatTensor(inputs.shape[0], num_total_class)
+            targets_one_hot = torch.FloatTensor(inputs.shape[0], self.args.num_class)
             targets_one_hot.zero_()
             targets_one_hot.scatter_(1, targets[:,None], 1)
 
@@ -200,29 +161,28 @@ class Learner():
 
 
             # compute output
-            outputs = self.model(inputs, path, task_ids)
+            outputs = self.model(inputs, path, -1)
             preds=outputs.masked_select(targets_one_hot.eq(1))
             
             tar_ce=targets
             pre_ce=outputs.clone()
 
-            pre_ce=pre_ce[:,0:num_class]
+            pre_ce=pre_ce[:,0:self.args.class_per_task*(1+sess_pretend)]
 
             loss =   F.cross_entropy(pre_ce,tar_ce)
             loss_dist = 0
             ## distillation loss
-            if self.args.sess > 0 and self.args.sess < self.args.num_train_task:        # only for continual training
-                outputs_old=self.old_model(inputs, path, task_ids)
+            if self.args.sess > 0:
+                outputs_old=self.old_model(inputs, path, -1)
 
                 t_one_hot=targets_one_hot.clone()
-
-                t_one_hot[:,0:num_old_class]=outputs_old[:,0:num_old_class]
+                t_one_hot[:,0:self.args.class_per_task*sess_pretend]=outputs_old[:,0:self.args.class_per_task*sess_pretend]
                 
                 
-                if(self.args.sess in range(1+self.args.jump)):
+                if(sess_pretend in range(1+self.args.jump)):
                     cx = 1
                 else:
-                    cx = self.args.rigidness_coff*(self.args.sess-self.args.jump)
+                    cx = self.args.rigidness_coff*(sess_pretend-self.args.jump)
                 loss_dist = ( cx/self.args.train_batch*1.0)* torch.sum(F.kl_div(F.log_softmax(outputs/2.0,dim=1),F.softmax(t_one_hot/2.0,dim=1),reduce=False).clamp(min=0.0))
 
             loss+=loss_dist 
@@ -236,13 +196,13 @@ class Learner():
 
             # measure accuracy and record loss
             if(self.args.dataset=="MNIST"):
-                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 1))
+                prec1, prec5 = accuracy(output=outputs.data[:,0:self.args.class_per_task*(1+sess_pretend)], target=targets.cuda().data, topk=(1, 1))
             elif(self.args.dataset=="SYSGQA"):
-                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 1))
+                prec1, prec5 = accuracy(output=outputs.data[:,0:self.args.class_per_task*(1+sess_pretend)], target=targets.cuda().data, topk=(1, 1))
             elif(self.args.dataset=="SUBGQA"):
-                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 1))
+                prec1, prec5 = accuracy(output=outputs.data[:,0:self.args.class_per_task*(1+sess_pretend)], target=targets.cuda().data, topk=(1, 1))
             else:
-                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 5))
+                prec1, prec5 = accuracy(output=outputs.data[:,0:self.args.class_per_task*(1+sess_pretend)], target=targets.cuda().data, topk=(1, 5))
             losses.update(loss.item(), inputs.size(0))
             top1.update(prec1.item(), inputs.size(0))
             top5.update(prec5.item(), inputs.size(0))
@@ -277,6 +237,12 @@ class Learner():
    
     
     def test(self, epoch, path, last):
+
+        if self.args.sess > 9:  # for novel testing, label is fixed to [20, 21]
+            sess_pretend = 10  # so all sess for loss and acc is fixed to 10
+        else:
+            sess_pretend = self.args.sess
+
         batch_time = AverageMeter()
         data_time = AverageMeter()
         losses = AverageMeter()
@@ -287,27 +253,13 @@ class Learner():
         self.model.eval()
 
         end = time.time()
-
-        if self.args.sess >= self.args.num_train_task:      # for novel testing
-            num_class = self.args.num_test_class    # for task-IL and class-IL num_class = 10
-            num_total_class = num_class
-        else:   # continual training
-            if self.args.return_task_id:        # task-IL
-                num_class = self.args.class_per_task        # 10
-                num_total_class = self.args.class_per_task
-            else:       # class-IL
-                num_class = self.args.class_per_task * (self.args.sess + 1)
-                num_total_class = self.args.class_per_task * self.args.num_train_task       # 100
-
-
         bar = Bar('Processing', max=len(self.testloader))
-        for batch_idx, (inputs, targets, task_ids) in enumerate(self.testloader):
+        for batch_idx, (inputs, targets) in enumerate(self.testloader):
             # measure data loading time
             data_time.update(time.time() - end)
 
 
-            targets = targets.long()
-            targets_one_hot = torch.FloatTensor(inputs.shape[0], num_total_class)
+            targets_one_hot = torch.FloatTensor(inputs.shape[0], self.args.num_class)
             targets_one_hot.zero_()
             targets_one_hot.scatter_(1, targets[:,None], 1)
 
@@ -318,7 +270,7 @@ class Learner():
 
             
 
-            outputs = self.model(inputs, path, task_ids)
+            outputs = self.model(inputs, path, -1)
 
             loss = F.cross_entropy(outputs, targets)
 
@@ -326,13 +278,13 @@ class Learner():
 
             # measure accuracy and record loss
             if(self.args.dataset=="MNIST"):
-                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 1))
+                prec1, prec5 = accuracy(output=outputs.data[:,0:self.args.class_per_task*(1+sess_pretend)], target=targets.cuda().data, topk=(1, 1))
             elif(self.args.dataset=="SYSGQA"):
-                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 1))
+                prec1, prec5 = accuracy(output=outputs.data[:,0:self.args.class_per_task*(1+sess_pretend)], target=targets.cuda().data, topk=(1, 1))
             elif(self.args.dataset=="SUBGQA"):
-                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 1))
+                prec1, prec5 = accuracy(output=outputs.data[:,0:self.args.class_per_task*(1+sess_pretend)], target=targets.cuda().data, topk=(1, 1))
             else:
-                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 5))
+                prec1, prec5 = accuracy(output=outputs.data[:,0:self.args.class_per_task*(1+sess_pretend)], target=targets.cuda().data, topk=(1, 5))
             losses.update(loss.item(), inputs.size(0))
             top1.update(prec1.item(), inputs.size(0))
             top5.update(prec5.item(), inputs.size(0))
@@ -375,11 +327,10 @@ class Learner():
         
         confusion_matrix = torch.zeros(100, 100)
         with torch.no_grad():
-            for i, (inputs, targets, task_ids) in enumerate(self.testloader):
+            for i, (inputs, targets) in enumerate(self.testloader):
                 inputs = inputs.cuda()
-                targets = targets.long()
                 targets = targets.cuda()
-                outputs = self.model(inputs, path, task_ids)
+                outputs = self.model(inputs, path, -1)
                 _, preds = torch.max(outputs, 1)
                 for t, p in zip(targets.view(-1), preds.view(-1)):
                         confusion_matrix[t.long(), p.long()] += 1
