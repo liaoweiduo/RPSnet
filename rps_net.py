@@ -135,8 +135,8 @@ class MultiHeadRPS_net(nn.Module):
         self.cuda()
 
     def freeze_feature_extractor(self):
-        params_set = [self.model.conv1, self.model.conv2, self.model.conv3, self.model.conv4, self.model.conv5,
-                      self.model.conv6, self.model.conv7, self.model.conv8, self.model.conv9]
+        params_set = [self.conv1, self.conv2, self.conv3, self.conv4, self.conv5,
+                      self.conv6, self.conv7, self.conv8, self.conv9]
         for j, params in enumerate(params_set):
             for i, param in enumerate(params):
                 param.requires_grad = False

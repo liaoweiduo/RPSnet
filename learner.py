@@ -37,22 +37,23 @@ class Learner():
 
 
         trainable_params = []
-        
-        if(self.args.dataset=="MNIST"):
-            params_set = [self.model.mlp1, self.model.mlp2]
-        else:
-            params_set = [self.model.conv1, self.model.conv2, self.model.conv3, self.model.conv4, self.model.conv5, self.model.conv6, self.model.conv7, self.model.conv8, self.model.conv9]
-        for j, params in enumerate(params_set): 
-            for i, param in enumerate(params):
-                if(i==self.args.M):
-                    p = {'params': param.parameters()}
-                    trainable_params.append(p)
-                else:
-                    if(self.train_path[j,i]==1):
+
+        if self.args.sess < self.args.num_train_task:       # continual train
+            if(self.args.dataset=="MNIST"):
+                params_set = [self.model.mlp1, self.model.mlp2]
+            else:
+                params_set = [self.model.conv1, self.model.conv2, self.model.conv3, self.model.conv4, self.model.conv5, self.model.conv6, self.model.conv7, self.model.conv8, self.model.conv9]
+            for j, params in enumerate(params_set):
+                for i, param in enumerate(params):
+                    if(i==self.args.M):
                         p = {'params': param.parameters()}
                         trainable_params.append(p)
                     else:
-                        param.requires_grad = False
+                        if(self.train_path[j,i]==1):
+                            p = {'params': param.parameters()}
+                            trainable_params.append(p)
+                        else:
+                            param.requires_grad = False
 
         if self.args.sess < self.args.num_train_task:       # continual train
             if self.args.return_task_id:        # task-IL

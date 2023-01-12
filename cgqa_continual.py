@@ -64,7 +64,7 @@ class args:
     L = 9
     N = 1
     lr = 0.001
-    train_batch = 100
+    train_batch = 50
     test_batch = 50
     workers = 10
     resume = False
@@ -156,12 +156,14 @@ def main(args):
 
         trainloader = torch.utils.data.DataLoader(
             train_dataset, batch_size=args.train_batch, shuffle=(train_sampler is None),
-            num_workers=args.workers, pin_memory=False, sampler=train_sampler)
+            # num_workers=args.workers,
+            pin_memory=True, sampler=train_sampler)
 
         testloader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.test_batch, shuffle=False,
-            num_workers=args.workers, pin_memory=False)
+            # num_workers=args.workers,
+            pin_memory=True)
         ############################## data loader  ######################
 
         load_model_ses = ses-1

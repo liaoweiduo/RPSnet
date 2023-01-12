@@ -66,8 +66,8 @@ class args:
     L = 9
     N = 1
     lr = 0.001
-    train_batch = 100
-    test_batch = 50
+    train_batch = 10
+    test_batch = 10
     workers = 10
     resume = False
     arch = "res-18"
