@@ -84,6 +84,25 @@ class Learner():
             elif args.sess < args.num_train_task + 5 * args.num_test_task:  # noc
                 sess_offset = args.num_train_task + 4 * args.num_test_task
                 mode = 'noc'
+
+            elif args.sess < args.num_train_task + 6 * args.num_test_task:  # sys    no freeze fe
+                sess_offset = args.num_train_task + 5 * args.num_test_task
+                mode = 'sys'
+            elif args.sess < args.num_train_task + 7 * args.num_test_task:  # pro
+                sess_offset = args.num_train_task + 6 * args.num_test_task
+                mode = 'pro'
+            elif args.sess < args.num_train_task + 8 * args.num_test_task:  # sub
+                sess_offset = args.num_train_task + 7 * args.num_test_task
+                mode = 'sub'
+            elif args.sess < args.num_train_task + 9 * args.num_test_task:  # non
+                sess_offset = args.num_train_task + 8 * args.num_test_task
+                mode = 'non'
+            elif args.sess < args.num_train_task + 10 * args.num_test_task:  # noc
+                sess_offset = args.num_train_task + 9 * args.num_test_task
+                mode = 'noc'
+            else:
+                raise Exception(f'sess error: {args.sess}.')
+
             p = {'params': self.model.final_layers[self.args.sess - sess_offset + offset].parameters()}
             trainable_params.append(p)
         print("Number of layers being trained : " , len(trainable_params))

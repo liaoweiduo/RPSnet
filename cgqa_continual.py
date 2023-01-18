@@ -133,6 +133,22 @@ def main(args):
         elif start_sess < args.num_train_task + 5 * args.num_test_task:      # noc
             sess_offset = args.num_train_task + 4 * args.num_test_task
             mode = 'noc'
+
+        elif start_sess < args.num_train_task + 6 * args.num_test_task:  # sys    no freeze fe
+            sess_offset = args.num_train_task + 5 * args.num_test_task
+            mode = 'sys'
+        elif start_sess < args.num_train_task + 7 * args.num_test_task:  # pro
+            sess_offset = args.num_train_task + 6 * args.num_test_task
+            mode = 'pro'
+        elif start_sess < args.num_train_task + 8 * args.num_test_task:  # sub
+            sess_offset = args.num_train_task + 7 * args.num_test_task
+            mode = 'sub'
+        elif start_sess < args.num_train_task + 9 * args.num_test_task:  # non
+            sess_offset = args.num_train_task + 8 * args.num_test_task
+            mode = 'non'
+        elif start_sess < args.num_train_task + 10 * args.num_test_task:  # noc
+            sess_offset = args.num_train_task + 9 * args.num_test_task
+            mode = 'noc'
         else:
             raise Exception(f'sess error: {start_sess}.')
 
@@ -237,7 +253,7 @@ def main(args):
             model.load_state_dict(prev_best['state_dict'])
             print(f'load model from {path_model}.')
 
-            if ses >= args.num_train_task:
+            if ses >= args.num_train_task and ses < args.num_train_task + 5 * args.num_test_task:   # afterward also train fe
                 model.freeze_feature_extractor()
 
 
