@@ -122,15 +122,23 @@ class MultiHeadRPS_net(nn.Module):
                 for i in range(self.args.num_train_task):
                     exec(f"self.final_layer{i+1} = nn.Linear(512, self.args.class_per_task)")    # 10
                     exec(f"self.final_layers.append(self.final_layer{i+1})")
-                for i in range(self.args.num_train_task, self.args.num_train_task + self.args.num_test_task):
-                    exec(f"self.final_layer{i+1} = nn.Linear(512, self.args.num_test_class)")    # 10
-                    exec(f"self.final_layers.append(self.final_layer{i+1})")
+
+                exec(f"self.final_layer_test = nn.Linear(512, self.args.num_test_class)")  # 10
+                exec(f"self.final_layers.append(self.final_layer_test)")
+
+                # for i in range(self.args.num_train_task, self.args.num_train_task + self.args.num_test_task):
+                #     exec(f"self.final_layer{i+1} = nn.Linear(512, self.args.num_test_class)")    # 10
+                #     exec(f"self.final_layers.append(self.final_layer{i+1})")
             else:    # class-IL
                 exec(f"self.final_layer1 = nn.Linear(512, self.args.class_per_task*self.args.num_train_task)")    # 100
                 exec(f"self.final_layers.append(self.final_layer1)")
-                for i in range(1, 1+self.args.num_test_task):
-                    exec(f"self.final_layer{i+1} = nn.Linear(512, self.args.num_test_class)")    # 10
-                    exec(f"self.final_layers.append(self.final_layer{i+1})")
+
+                exec(f"self.final_layer_test = nn.Linear(512, self.args.num_test_class)")  # 10
+                exec(f"self.final_layers.append(self.final_layer_test)")
+
+                # for i in range(1, 1+self.args.num_test_task):
+                #     exec(f"self.final_layer{i+1} = nn.Linear(512, self.args.num_test_class)")    # 10
+                #     exec(f"self.final_layers.append(self.final_layer{i+1})")
 
         self.cuda()
 
@@ -222,7 +230,11 @@ class MultiHeadRPS_net(nn.Module):
         else:
             o = []
             for x_idx in range(x.shape[0]):
-                o.append(self.final_layers[last[x_idx]](x[x_idx: x_idx+1]))   # forward classifier sample by sample
+                if last[x_idx] >= len(self.final_layers):  # for few-shot test
+                    idx = -1
+                else:       # for continual train
+                    idx = last[x_idx]
+                o.append(self.final_layers[idx](x[x_idx: x_idx+1]))   # forward classifier sample by sample
             x = torch.cat(o)
 
         return x

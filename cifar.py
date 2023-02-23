@@ -34,7 +34,7 @@ import random
 
 
 from rps_net import RPS_net_cifar
-from learner import Learner
+from learner_backup import Learner
 from util import *
 from cifar_dataset import CIFAR100
 

@@ -58,9 +58,11 @@ class Learner():
         p = {'params': self.model.final_layers[-1].parameters()}        # classifier
         trainable_params.append(p)
         print("Number of layers being trained : " , len(trainable_params))
-        
-        
-#         self.optimizer = optim.Adadelta(trainable_params)
+
+        print('    Total trainable params: %.2fM' % (
+                sum(p.numel() for p in self.model.parameters() if p.requires_grad) / 1024 / 1024))
+
+        #         self.optimizer = optim.Adadelta(trainable_params)
 #         self.optimizer = optim.SGD(trainable_params, lr=self.args.lr, momentum=0.96, weight_decay=0)
         self.optimizer = optim.Adam(trainable_params, lr=self.args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
         

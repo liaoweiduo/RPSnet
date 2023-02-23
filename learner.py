@@ -45,7 +45,7 @@ class Learner():
                 params_set = [self.model.conv1, self.model.conv2, self.model.conv3, self.model.conv4, self.model.conv5, self.model.conv6, self.model.conv7, self.model.conv8, self.model.conv9]
             for j, params in enumerate(params_set):
                 for i, param in enumerate(params):
-                    if(i==self.args.M):
+                    if(i==self.args.M):     # M_skip
                         p = {'params': param.parameters()}
                         trainable_params.append(p)
                     else:
@@ -57,56 +57,69 @@ class Learner():
 
         if self.args.sess < self.args.num_train_task:       # continual train
             if self.args.return_task_id:        # task-IL
-                for j in range(self.args.sess+1):
-                    p = {'params': self.model.final_layers[j].parameters()}     # all trained classifiers
-                    trainable_params.append(p)
+                for j in range(len(self.model.final_layers)):
+                    if j < self.args.sess+1:
+                        p = {'params': self.model.final_layers[j].parameters()}     # all trained classifiers since memory-based
+                        trainable_params.append(p)
+                    else:
+                        self.model.final_layers[j].requires_grad = False
             else:       # class-IL
+                assert len(self.model.final_layers) == 2
                 p = {'params': self.model.final_layers[0].parameters()}  # classifier
                 trainable_params.append(p)
+                self.model.final_layers[1].requires_grad = False
+
         else:       # fewshot test
-            if self.args.return_task_id:        # task-IL
-                offset = self.args.num_train_task
-            else:       # class-IL
-                offset = 1
+            # if self.args.return_task_id:        # task-IL
+            #     offset = self.args.num_train_task
+            # else:       # class-IL
+            #     offset = 1
+            #
+            # if args.sess < args.num_train_task + 1 * args.num_test_task:  # sys
+            #     sess_offset = args.num_train_task
+            #     mode = 'sys'
+            # elif args.sess < args.num_train_task + 2 * args.num_test_task:  # pro
+            #     sess_offset = args.num_train_task + 1 * args.num_test_task
+            #     mode = 'pro'
+            # elif args.sess < args.num_train_task + 3 * args.num_test_task:  # sub
+            #     sess_offset = args.num_train_task + 2 * args.num_test_task
+            #     mode = 'sub'
+            # elif args.sess < args.num_train_task + 4 * args.num_test_task:  # non
+            #     sess_offset = args.num_train_task + 3 * args.num_test_task
+            #     mode = 'non'
+            # elif args.sess < args.num_train_task + 5 * args.num_test_task:  # noc
+            #     sess_offset = args.num_train_task + 4 * args.num_test_task
+            #     mode = 'noc'
+            #
+            # elif args.sess < args.num_train_task + 6 * args.num_test_task:  # sys    no freeze fe
+            #     sess_offset = args.num_train_task + 5 * args.num_test_task
+            #     mode = 'sys'
+            # elif args.sess < args.num_train_task + 7 * args.num_test_task:  # pro
+            #     sess_offset = args.num_train_task + 6 * args.num_test_task
+            #     mode = 'pro'
+            # elif args.sess < args.num_train_task + 8 * args.num_test_task:  # sub
+            #     sess_offset = args.num_train_task + 7 * args.num_test_task
+            #     mode = 'sub'
+            # elif args.sess < args.num_train_task + 9 * args.num_test_task:  # non
+            #     sess_offset = args.num_train_task + 8 * args.num_test_task
+            #     mode = 'non'
+            # elif args.sess < args.num_train_task + 10 * args.num_test_task:  # noc
+            #     sess_offset = args.num_train_task + 9 * args.num_test_task
+            #     mode = 'noc'
+            # else:
+            #     raise Exception(f'sess error: {args.sess}.')
+            # p = {'params': self.model.final_layers[self.args.sess - sess_offset + offset].parameters()}
 
-            if args.sess < args.num_train_task + 1 * args.num_test_task:  # sys
-                sess_offset = args.num_train_task
-                mode = 'sys'
-            elif args.sess < args.num_train_task + 2 * args.num_test_task:  # pro
-                sess_offset = args.num_train_task + 1 * args.num_test_task
-                mode = 'pro'
-            elif args.sess < args.num_train_task + 3 * args.num_test_task:  # sub
-                sess_offset = args.num_train_task + 2 * args.num_test_task
-                mode = 'sub'
-            elif args.sess < args.num_train_task + 4 * args.num_test_task:  # non
-                sess_offset = args.num_train_task + 3 * args.num_test_task
-                mode = 'non'
-            elif args.sess < args.num_train_task + 5 * args.num_test_task:  # noc
-                sess_offset = args.num_train_task + 4 * args.num_test_task
-                mode = 'noc'
-
-            elif args.sess < args.num_train_task + 6 * args.num_test_task:  # sys    no freeze fe
-                sess_offset = args.num_train_task + 5 * args.num_test_task
-                mode = 'sys'
-            elif args.sess < args.num_train_task + 7 * args.num_test_task:  # pro
-                sess_offset = args.num_train_task + 6 * args.num_test_task
-                mode = 'pro'
-            elif args.sess < args.num_train_task + 8 * args.num_test_task:  # sub
-                sess_offset = args.num_train_task + 7 * args.num_test_task
-                mode = 'sub'
-            elif args.sess < args.num_train_task + 9 * args.num_test_task:  # non
-                sess_offset = args.num_train_task + 8 * args.num_test_task
-                mode = 'non'
-            elif args.sess < args.num_train_task + 10 * args.num_test_task:  # noc
-                sess_offset = args.num_train_task + 9 * args.num_test_task
-                mode = 'noc'
-            else:
-                raise Exception(f'sess error: {args.sess}.')
-
-            p = {'params': self.model.final_layers[self.args.sess - sess_offset + offset].parameters()}
+            p = {'params': self.model.final_layers[-1].parameters()}
             trainable_params.append(p)
+            for j in range(len(self.model.final_layers)-1):
+                self.model.final_layers[j].requires_grad = False
+
         print("Number of layers being trained : " , len(trainable_params))
-        
+
+        print('    Total trainable params: %.2fM' % (
+                sum(p.numel() for p in self.model.parameters() if p.requires_grad) / 1024 / 1024))
+
         
 #         self.optimizer = optim.Adadelta(trainable_params)
 #         self.optimizer = optim.SGD(trainable_params, lr=self.args.lr, momentum=0.96, weight_decay=0)

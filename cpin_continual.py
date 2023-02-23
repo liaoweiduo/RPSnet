@@ -34,19 +34,18 @@ import random
 
 
 from rps_net import MultiHeadRPS_net
-from vit import MultiHeadRPS_net_ViT
 from learner import Learner
 from util import *
 from cifar_dataset import CIFAR100
 
 from avalanche.benchmarks.utils import PathsDataset
-from cgqa import continual_training_benchmark, fewshot_testing_benchmark
+from cpin import continual_training_benchmark, fewshot_testing_benchmark
 
 
 class args:
     epochs = 100
-    checkpoint = "../RPSnet-experiments/results/cgqa/RPSnet-cls"
-    savepoint = "../RPSnet-experiments/models/cgqa/RPSnet-cls"
+    checkpoint = "../RPSnet-experiments/results/cpin/RPSnet-cls"
+    savepoint = "../RPSnet-experiments/models/cpin/RPSnet-cls"
     data = '../datasets'
     return_task_id = False      # True for task-IL, False for class-IL
     # labels_data = "prepare/sysgqa_train.pkl"
@@ -59,7 +58,7 @@ class args:
     M = 8
     jump = 2
     rigidness_coff = 10
-    dataset = "CGQA"
+    dataset = "CPIN"
     num_train_task = 10     # only related to sess, for task-IL and class-IL, it is 10.
     num_test_task = 300     # with num_class together, use to define the classifier: (300 + 10) * [100]
     num_test_class = 10
@@ -67,11 +66,11 @@ class args:
     L = 9
     N = 1
     lr = 0.001
-    train_batch = 10
-    test_batch = 10
+    train_batch = 50
+    test_batch = 50
     workers = 10
     resume = False
-    arch = "vit"
+    arch = "res-18"
     start_epoch = 0
     evaluate = False
     sess = 0
@@ -95,13 +94,9 @@ if use_cuda:
 
 def main(args):
     
-    if args.arch == 'res-18':
-        model = MultiHeadRPS_net(args).cuda()
-    elif args.arch == 'vit':
-        model = MultiHeadRPS_net_ViT(args).cuda()
-    else:
-        raise Exception(f'un implemented arch: {args.arch}')
-    print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1024 /1024))
+    
+    model = MultiHeadRPS_net(args).cuda()
+    print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
     
     
     if not os.path.isdir(args.checkpoint):
@@ -181,7 +176,6 @@ def main(args):
             val_dataset = torch.utils.data.ConcatDataset(val_datasets)
         else:
             val_dataset = benchmark.test_stream[ses - sess_offset].dataset
-
 
         train_sampler = None
 
@@ -270,6 +264,7 @@ def main(args):
 
             if ses >= args.num_train_task and ses < args.num_train_task + 5 * args.num_test_task:   # afterward also train fe
                 model.freeze_feature_extractor()
+
 
         main_learner=Learner(model=model,args=args,trainloader=trainloader,
                              testloader=testloader,old_model=copy.deepcopy(model),
