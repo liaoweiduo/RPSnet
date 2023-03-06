@@ -50,7 +50,7 @@ class args:
     return_task_id = False      # True for task-IL, False for class-IL
     # labels_data = "prepare/sysgqa_train.pkl"
 
-    image_size = (128, 128)
+    image_size = 128
 
     num_class = 100         # no use
     # for task-IL, should be 10, for class-IL, should be 100
@@ -181,14 +181,14 @@ def main(args):
 
         trainloader = torch.utils.data.DataLoader(
             train_dataset, batch_size=args.train_batch, shuffle=(train_sampler is None),
-            # num_workers=args.workers,
-            pin_memory=True, sampler=train_sampler)
+            num_workers=args.workers,
+            pin_memory=False, sampler=train_sampler)
 
         testloader = torch.utils.data.DataLoader(
             val_dataset,
             batch_size=args.test_batch, shuffle=False,
-            # num_workers=args.workers,
-            pin_memory=True)
+            num_workers=args.workers,
+            pin_memory=False)
         ############################## data loader  ######################
 
         load_model_ses = ses-1

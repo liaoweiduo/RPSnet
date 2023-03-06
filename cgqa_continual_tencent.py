@@ -46,13 +46,13 @@ from cgqa_continual import main
 
 class args:
     epochs = 100
-    checkpoint = "/apdcephfs/share_1364275/lwd/RPSnet-experiments/results/cgqa/RPSnet-resnet-lr1e-3"
-    savepoint =  "/apdcephfs/share_1364275/lwd/RPSnet-experiments/models/cgqa/RPSnet-resnet-lr1e-3"
+    checkpoint = "/apdcephfs/share_1364275/lwd/RPSnet-experiments/results/cgqa/RPSnet-resnet-M8-lr1e-3"
+    savepoint =  "/apdcephfs/share_1364275/lwd/RPSnet-experiments/models/cgqa/RPSnet-resnet-M8-lr1e-3"
     data = '/apdcephfs/share_1364275/lwd/datasets'
     return_task_id = False      # True for task-IL, False for class-IL
     # labels_data = "prepare/sysgqa_train.pkl"
 
-    image_size = (128, 128)
+    image_size = 128
 
     num_class = 100         # no use
     # for task-IL, should be 10, for class-IL, should be 100
@@ -68,8 +68,8 @@ class args:
     L = 9
     N = 1
     lr = 0.001
-    train_batch = 10
-    test_batch = 10
+    train_batch = 100
+    test_batch = 100
     workers = 10
     resume = False
     arch = "res-18"

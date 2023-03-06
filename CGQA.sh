@@ -11,7 +11,7 @@
 #CUDA_VISIBLE_DEVICES=4 python3 cgqa_continual.py 4 0 &
 #CUDA_VISIBLE_DEVICES=5 python3 cgqa_continual.py 5 0 &
 #CUDA_VISIBLE_DEVICES=6 python3 cgqa_continual.py 6 0 &
-CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 0
+#CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 0
 #
 #
 #sleep 20
@@ -21,9 +21,10 @@ CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 0
 #CUDA_VISIBLE_DEVICES=3 python3 cgqa_continual.py 3 1 &
 #CUDA_VISIBLE_DEVICES=4 python3 cgqa_continual.py 4 1 &
 #CUDA_VISIBLE_DEVICES=5 python3 cgqa_continual.py 5 1 &
-#CUDA_VISIBLE_DEVICES=6 python3 cgqa_continual.py 6 1 &
+CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 6 1
+#&
 #CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 1
-#
+
 #sleep 20
 #CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 2 &
 #CUDA_VISIBLE_DEVICES=1 python3 cgqa_continual.py 1 2 &
@@ -105,8 +106,8 @@ CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 0
 #CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 9
 #
 #sleep 20
-
-
+#
+#
 ## sys
 #
 #for i_n in {10..309}
@@ -192,88 +193,3 @@ CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 0
 #
 #done
 
-
-# sys
-
-#for i_n in {1510..1809}
-#do
-#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 $i_n &
-#  CUDA_VISIBLE_DEVICES=1 python3 cgqa_continual.py 1 $i_n &
-#  CUDA_VISIBLE_DEVICES=2 python3 cgqa_continual.py 2 $i_n &
-#  CUDA_VISIBLE_DEVICES=3 python3 cgqa_continual.py 3 $i_n &
-#  CUDA_VISIBLE_DEVICES=4 python3 cgqa_continual.py 4 $i_n &
-#  CUDA_VISIBLE_DEVICES=5 python3 cgqa_continual.py 5 $i_n &
-#  CUDA_VISIBLE_DEVICES=6 python3 cgqa_continual.py 6 $i_n &
-#  CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 $i_n
-#
-#  sleep 20
-#
-#done
-#
-## pro
-#
-#for i_n in {1810..2109}
-#do
-#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 $i_n &
-#  CUDA_VISIBLE_DEVICES=1 python3 cgqa_continual.py 1 $i_n &
-#  CUDA_VISIBLE_DEVICES=2 python3 cgqa_continual.py 2 $i_n &
-#  CUDA_VISIBLE_DEVICES=3 python3 cgqa_continual.py 3 $i_n &
-#  CUDA_VISIBLE_DEVICES=4 python3 cgqa_continual.py 4 $i_n &
-#  CUDA_VISIBLE_DEVICES=5 python3 cgqa_continual.py 5 $i_n &
-#  CUDA_VISIBLE_DEVICES=6 python3 cgqa_continual.py 6 $i_n &
-#  CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 $i_n
-#
-#  sleep 20
-#
-#done
-#
-## sub
-#
-#for i_n in {2110..2409}
-#do
-#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 $i_n &
-#  CUDA_VISIBLE_DEVICES=1 python3 cgqa_continual.py 1 $i_n &
-#  CUDA_VISIBLE_DEVICES=2 python3 cgqa_continual.py 2 $i_n &
-#  CUDA_VISIBLE_DEVICES=3 python3 cgqa_continual.py 3 $i_n &
-#  CUDA_VISIBLE_DEVICES=4 python3 cgqa_continual.py 4 $i_n &
-#  CUDA_VISIBLE_DEVICES=5 python3 cgqa_continual.py 5 $i_n &
-#  CUDA_VISIBLE_DEVICES=6 python3 cgqa_continual.py 6 $i_n &
-#  CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 $i_n
-#
-#  sleep 20
-#
-#done
-#
-## non
-#
-#for i_n in {2410..2709}
-#do
-#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 $i_n &
-#  CUDA_VISIBLE_DEVICES=1 python3 cgqa_continual.py 1 $i_n &
-#  CUDA_VISIBLE_DEVICES=2 python3 cgqa_continual.py 2 $i_n &
-#  CUDA_VISIBLE_DEVICES=3 python3 cgqa_continual.py 3 $i_n &
-#  CUDA_VISIBLE_DEVICES=4 python3 cgqa_continual.py 4 $i_n &
-#  CUDA_VISIBLE_DEVICES=5 python3 cgqa_continual.py 5 $i_n &
-#  CUDA_VISIBLE_DEVICES=6 python3 cgqa_continual.py 6 $i_n &
-#  CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 $i_n
-#
-#  sleep 20
-#
-#done
-#
-## noc
-#
-#for i_n in {2710..3009}
-#do
-#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 $i_n &
-#  CUDA_VISIBLE_DEVICES=1 python3 cgqa_continual.py 1 $i_n &
-#  CUDA_VISIBLE_DEVICES=2 python3 cgqa_continual.py 2 $i_n &
-#  CUDA_VISIBLE_DEVICES=3 python3 cgqa_continual.py 3 $i_n &
-#  CUDA_VISIBLE_DEVICES=4 python3 cgqa_continual.py 4 $i_n &
-#  CUDA_VISIBLE_DEVICES=5 python3 cgqa_continual.py 5 $i_n &
-#  CUDA_VISIBLE_DEVICES=6 python3 cgqa_continual.py 6 $i_n &
-#  CUDA_VISIBLE_DEVICES=7 python3 cgqa_continual.py 7 $i_n
-#
-#  sleep 20
-#
-#done
