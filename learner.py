@@ -294,8 +294,6 @@ class Learner():
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            if self.scheduler is not None:
-                self.scheduler.step()
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -318,6 +316,8 @@ class Learner():
         bar.finish()
         self.train_loss,self.train_acc=losses.avg, top1.avg
 
+        if self.scheduler is not None:
+            self.scheduler.step()
    
     
     def test(self, epoch, path, last):
