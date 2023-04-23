@@ -12,17 +12,76 @@ from typing import Optional, Sequence, Union, Any, Dict, List
 import json
 
 import numpy as np
+import torch
+from torch.utils.data.dataset import Subset, Dataset
 from torchvision import transforms
+from torchvision.transforms.functional import InterpolationMode
+import timm
+from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+from timm.data import create_transform
 
 from avalanche.benchmarks.classic.classic_benchmarks_utils import check_vision_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.generators import nc_benchmark, dataset_benchmark
-from avalanche.benchmarks.utils import PathsDataset, AvalancheDataset, AvalancheSubset
+from avalanche.benchmarks.utils import PathsDataset, \
+    classification_subset, concat_classification_datasets, make_classification_dataset
+
 
 """ README
 The original labels of classes are the sorted combination of all existing
 objects defined in json. E.g., "apple,banana".
 """
+
+
+def _build_default_transform(image_size=(128, 228), is_train=True, normalize=True):
+    """
+    Default transforms borrowed from MetaShift.
+    Imagenet normalization.
+    """
+    _train_transform = [
+            transforms.Resize(image_size),  # allow reshape but not equal scaling
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+    ]
+    _eval_transform = [
+            transforms.Resize(image_size),
+            transforms.ToTensor(),
+    ]
+    if normalize:
+        _train_transform.append(transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ))
+        _eval_transform.append(transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ))
+
+    _default_train_transform = transforms.Compose(_train_transform)
+    _default_eval_transform = transforms.Compose(_eval_transform)
+
+    if is_train:
+        return _default_train_transform
+    else:
+        return _default_eval_transform
+
+
+def build_transform_for_vit(img_size=(224, 224), is_train=True):
+    if is_train:
+        _train_transform = create_transform(
+            input_size=img_size,
+            is_training=is_train,
+            color_jitter=0.3,  # 颜色抖动
+            auto_augment='rand-m9-mstd0.5-inc1',
+            interpolation='bicubic',
+            re_prob=0.25,
+            re_mode='pixel',
+            re_count=1,
+        )
+        # replace RandomResizedCropAndInterpolation with Resize, for not cropping img and missing concepts
+        _train_transform.transforms[0] = transforms.Resize(img_size, interpolation=InterpolationMode.BICUBIC)
+
+        return _train_transform
+    else:
+        return _build_default_transform(img_size, False)
 
 
 def continual_training_benchmark(
@@ -37,6 +96,8 @@ def continual_training_benchmark(
         eval_transform: Optional[Any] = None,
         dataset_root: Union[str, Path] = None,
         memory_size: int = 0,
+        num_samples_each_label: Optional[int] = None,
+        multi_task: bool = False,
 ):
     """
     Creates a CL benchmark using the pre-processed GQA dataset.
@@ -70,6 +131,10 @@ def continual_training_benchmark(
         'tinyimagenet' will be used.
     :param memory_size: Total memory size for store all past classes/tasks.
         Each class has equal number of instances in the memory.
+    :param num_samples_each_label: Number of samples for each label,
+        -1 or None means all data are used.
+    :param multi_task: if True, return a multi_task benchmark,
+        else, return a continual learning benchmark.
 
     :returns: A properly initialized instance: `GenericCLScenario`
         with train_stream, val_stream, test_stream.
@@ -77,36 +142,17 @@ def continual_training_benchmark(
     if dataset_root is None:
         dataset_root = default_dataset_location("gqa")
 
-    '''
-    Default transforms borrowed from MetaShift.
-    Imagenet normalization.
-    '''
-    _default_cgqa_train_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),  # allow reshape but not equal scaling
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
-    _default_cgqa_eval_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
     if train_transform is None:
-        train_transform = _default_cgqa_train_transform
+        train_transform = _build_default_transform(image_size, True)
     if eval_transform is None:
-        eval_transform = _default_cgqa_eval_transform
+        eval_transform = _build_default_transform(image_size, False)
 
     '''load datasets'''
-    datasets, label_info = _get_gqa_datasets(dataset_root, mode='continual', image_size=image_size)
+    if num_samples_each_label is None or num_samples_each_label < 0:
+        num_samples_each_label = None
+
+    datasets, label_info = _get_gqa_datasets(dataset_root, mode='continual', image_size=image_size,
+                                             num_samples_each_label=num_samples_each_label)
     train_set, val_set, test_set = datasets['train'], datasets['val'], datasets['test']
     label_set, map_tuple_label_to_int, map_int_label_to_tuple = label_info
 
@@ -114,19 +160,21 @@ def continual_training_benchmark(
     num_classes = len(label_set)
     assert num_classes % n_experiences == 0
     num_class_in_exp = num_classes // n_experiences
-    classes_order = np.array(list(map_int_label_to_tuple.keys()))  # [0-99]
+    classes_order = np.array(list(map_int_label_to_tuple.keys())).astype(np.int64)  # [0-99]
     if fixed_class_order is not None:
         assert len(fixed_class_order) == num_classes
-        classes_order = np.array(fixed_class_order)
+        classes_order = np.array(fixed_class_order).astype(np.int64)
     elif shuffle:
         rng = np.random.RandomState(seed=seed)
         rng.shuffle(classes_order)
 
     original_classes_in_exp = classes_order.reshape([n_experiences, num_class_in_exp])  # e.g.[[5, 2], [6, 10],...]
     if return_task_id:      # task-IL
-        classes_in_exp = np.stack([np.arange(num_class_in_exp) for _ in range(n_experiences)])  # [[0,1], [0,1],...]
+        classes_in_exp = np.stack([np.arange(num_class_in_exp) for _ in range(n_experiences)]).astype(np.int64)
+        # [[0,1], [0,1],...]
     else:
-        classes_in_exp = np.arange(num_classes).reshape([n_experiences, num_class_in_exp])  # [[0,1], [2,3],...]
+        classes_in_exp = np.arange(num_classes).reshape([n_experiences, num_class_in_exp]).astype(np.int64)
+        # [[0,1], [2,3],...]
 
     '''class mapping for each exp, contain the mapping for previous exps (unseen filled with -1)'''
     '''so that it allow memory buffer for previous exps'''
@@ -135,12 +183,12 @@ def continual_training_benchmark(
         class_mapping = np.array([-1] * num_classes)
         class_mapping[original_classes_in_exp[:exp_idx+1].reshape(-1)] = classes_in_exp[:exp_idx+1].reshape(-1)
         class_mappings.append(class_mapping)    # [-1 -1  2 ... -1  6 -1 ... -1  0 -1 ... -1]
-    class_mappings = np.array(class_mappings)
+    class_mappings = np.array(class_mappings).astype(np.int64)
 
     '''get sample indices for each experiment'''
     rng = np.random.RandomState(seed)   # reset rng for memory selection
 
-    def obtain_subset(dataset, exp_idx, memory_size):
+    def obtain_subset(dataset, exp_idx, memory_size=0):
         t = dataset.targets
         exp_classes = original_classes_in_exp[exp_idx]
         indices = [np.where(np.isin(t, exp_classes))[0]]    # current exp
@@ -163,12 +211,29 @@ def continual_training_benchmark(
         indices = np.concatenate(indices)
         task_labels = np.concatenate(task_labels)
         assert indices.shape[0] == task_labels.shape[0]
-        return AvalancheSubset(
-            dataset,
-            indices=indices,
-            class_mapping=class_mappings[exp_idx],
-            transform_groups={'val': (None, None)},
-            task_labels=task_labels)
+
+        # '''use class_mappings to change label and return a new dataset'''
+        # avl_dataset = make_classification_dataset(dataset)
+        # sub_data = avl_dataset.subset(indices)
+        #
+        # # subset = Subset(dataset, indices)
+        # mapped_targets = np.array([class_mappings[exp_idx][idx] for idx in np.array(t)[indices]])
+        # sub_data = make_classification_dataset(sub_data, targets=mapped_targets, task_labels=task_labels)
+        #
+        # return sub_data
+
+        # return classification_subset(
+        #     dataset,
+        #     indices=indices,
+        #     class_mapping=class_mappings[exp_idx],
+        #     task_labels=task_labels)
+
+        mapped_targets = np.array([class_mappings[exp_idx][idx] for idx in np.array(t)[indices]])
+        return make_classification_dataset(
+            MySubset(dataset, indices=list(indices), class_mapping=class_mappings[exp_idx]),
+            targets=mapped_targets,
+            task_labels=task_labels,
+        )
 
     train_subsets = [
         obtain_subset(train_set, expidx, memory_size)
@@ -176,14 +241,41 @@ def continual_training_benchmark(
     ]
 
     val_subsets = [
-        obtain_subset(val_set, expidx, 0)
+        obtain_subset(val_set, expidx)
         for expidx in range(n_experiences)
     ]
 
     test_subsets = [
-        obtain_subset(test_set, expidx, 0)
+        obtain_subset(test_set, expidx)
         for expidx in range(n_experiences)
     ]
+
+    if multi_task:
+        # multi_task_train_dataset = train_subsets[0]
+        # multi_task_val_dataset = val_subsets[0]
+        # for expidx in range(1, n_experiences):
+        #     multi_task_train_dataset = multi_task_train_dataset.concat(train_subsets[expidx])
+        #     multi_task_val_dataset = multi_task_val_dataset.concat(val_subsets[expidx])
+        train_subsets = [
+            concat_classification_datasets(
+                train_subsets,
+                # transform_groups={'val': (None, None)},
+        )]
+
+    # benchmark_instance = dataset_benchmark(
+    #     train_datasets=train_subsets,
+    #     test_datasets=test_subsets,
+    #     train_transform=train_transform,
+    #     eval_transform=eval_transform,
+    # )
+    #
+    # val_stream = dataset_benchmark(
+    #     train_datasets=train_subsets,
+    #     test_datasets=val_subsets,
+    #     train_transform=train_transform,
+    #     eval_transform=eval_transform,
+    # )
+    # benchmark_instance.val_stream = val_stream
 
     benchmark_instance = dataset_benchmark(
         train_datasets=train_subsets,
@@ -193,12 +285,12 @@ def continual_training_benchmark(
         eval_transform=eval_transform,
         other_streams_transforms={'val': (eval_transform, None)},
     )
-
     benchmark_instance.original_classes_in_exp = original_classes_in_exp
     benchmark_instance.classes_in_exp = classes_in_exp
     benchmark_instance.class_mappings = class_mappings
     benchmark_instance.n_classes = num_classes
     benchmark_instance.label_info = label_info
+    benchmark_instance.return_task_id = return_task_id
 
     return benchmark_instance
 
@@ -262,33 +354,10 @@ def fewshot_testing_benchmark(
     if dataset_root is None:
         dataset_root = default_dataset_location("gqa")
 
-    '''
-    Default transforms borrowed from MetaShift.
-    Imagenet normalization.
-    '''
-    _default_cgqa_train_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),  # allow reshape but not equal scaling
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
-    _default_cgqa_eval_transform = transforms.Compose(
-        [
-            transforms.Resize(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),
-        ]
-    )
     if train_transform is None:
-        train_transform = _default_cgqa_train_transform
+        train_transform = _build_default_transform(image_size, True)
     if eval_transform is None:
-        eval_transform = _default_cgqa_eval_transform
+        eval_transform = _build_default_transform(image_size, False)
 
     '''load datasets'''
     datasets, label_info = _get_gqa_datasets(dataset_root, mode=mode, image_size=image_size)
@@ -307,20 +376,20 @@ def fewshot_testing_benchmark(
 
     if fixed_class_order is not None:
         assert len(fixed_class_order) == n_experiences * n_way
-        selected_classes_in_exp = np.array(fixed_class_order).reshape(n_experiences, n_way)
+        selected_classes_in_exp = np.array(fixed_class_order).astype(np.int64).reshape(n_experiences, n_way)
     else:
         rng = np.random.RandomState(seed=seed)
         for exp_idx in range(n_experiences):
             '''select n_way classes for each exp'''
-            selected_class_idxs = rng.choice(classes_order, n_way, replace=False)
+            selected_class_idxs = rng.choice(classes_order, n_way, replace=False).astype(np.int64)
             selected_classes_in_exp.append(selected_class_idxs)
 
     for exp_idx in range(n_experiences):
         selected_class_idxs = selected_classes_in_exp[exp_idx]
-        classes_in_exp.append(np.arange(n_way))
+        classes_in_exp.append(np.arange(n_way).astype(np.int64))
         class_mapping = np.array([-1] * num_classes)
         class_mapping[selected_class_idxs] = np.arange(n_way)
-        class_mappings.append(class_mapping)
+        class_mappings.append(class_mapping.astype(np.int64))
         task_labels.append(exp_idx + task_offset)
 
     rng = np.random.RandomState(seed)
@@ -339,7 +408,7 @@ def fewshot_testing_benchmark(
         if n_query > 0:
             query_indices = np.concatenate(query_indices)
         train_subsets.append(
-            AvalancheSubset(
+            classification_subset(
                 dataset,
                 indices=shot_indices,
                 class_mapping=class_mappings[exp_idx],
@@ -347,7 +416,7 @@ def fewshot_testing_benchmark(
                 task_labels=task_labels[exp_idx])
         )
         val_subsets.append(
-            AvalancheSubset(
+            classification_subset(
                 dataset,
                 indices=val_indices,
                 class_mapping=class_mappings[exp_idx],
@@ -355,7 +424,7 @@ def fewshot_testing_benchmark(
                 task_labels=task_labels[exp_idx])
         )
         test_subsets.append(
-            AvalancheSubset(
+            classification_subset(
                 dataset,
                 indices=query_indices,
                 class_mapping=class_mappings[exp_idx],
@@ -377,6 +446,7 @@ def fewshot_testing_benchmark(
     benchmark_instance.class_mappings = np.array(class_mappings)
     benchmark_instance.n_classes = num_classes
     benchmark_instance.label_info = label_info
+    benchmark_instance.return_task_id = True
 
     return benchmark_instance
 
@@ -403,7 +473,7 @@ def _get_gqa_datasets(
         randomly shuffled. Default to False.
     :param seed: A valid int used to initialize the random number generator.
         Can be None.
-    :param mode: Option [continual, sys, pro, sub, non, noc, nons, syss].
+    :param mode: Option [continual, sys, pro, sub, non, noc].
     :param num_samples_each_label: If specify a certain number of samples for each label,
         random sampling (build-in seed:1234,
         and replace=True if num_samples_each_label > num_samples, else False)
@@ -418,6 +488,9 @@ def _get_gqa_datasets(
     :return data_sets defined by json file and label information.
     """
     img_folder_path = os.path.join(dataset_root, "gqa", "GQA_100")
+
+    if mode in ['nonf', 'nono', 'sysf', 'syso']:
+        mode = mode[:3]     # recover to its original mode
 
     def preprocess_label_to_integer(img_info, mapping_tuple_label_to_int):
         for item in img_info:
@@ -516,7 +589,7 @@ def _get_gqa_datasets(
         datasets = {'train': train_set, 'val': val_set, 'test': test_set}
         label_info = (label_set, map_tuple_label_to_int, map_int_label_to_tuple)
 
-    elif mode in ['sys', 'pro', 'sub', 'non', 'noc', 'nons', 'syss']:
+    elif mode in ['sys', 'pro', 'sub', 'non', 'noc']:
         json_name = {'sys': 'sys/sys_fewshot.json', 'pro': 'pro/pro_fewshot.json', 'sub': 'sub/sub_fewshot.json',
                      'non': 'non_novel/non_novel_fewshot.json', 'noc': 'non_comp/non_comp_fewshot.json'}[mode]
         json_path = os.path.join(img_folder_path, "fewshot", json_name)
@@ -541,19 +614,43 @@ def _get_gqa_datasets(
     return datasets, label_info
 
 
-__all__ = ["continual_training_benchmark", "fewshot_testing_benchmark"]
+class MySubset(Subset):
+    """
+    subset with class mapping
+    """
+    def __init__(self, dataset, indices: list, class_mapping, transform=None):
+        super().__init__(dataset, indices)
+        # self._dataset = dataset
+        # self._indices = indices
+        # self._subset = Subset(dataset, indices)
+        self._class_mapping = class_mapping
+        self._transform = transform
+
+    def __getitem__(self, index):
+        x, y = super().__getitem__(index)
+        if self._transform is not None:
+            x = self._transform(x)
+        mapped_y = self._class_mapping[y]
+        return x, mapped_y
+
+
+__all__ = ["continual_training_benchmark", "fewshot_testing_benchmark", "build_transform_for_vit"]
 
 
 if __name__ == "__main__":
     '''Continual'''
-    # _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='continual')
+    _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='continual')
 
-    # _benchmark_instance = continual_training_benchmark(
-    #     n_experiences=10, return_task_id=True,
-    #     seed=1234, shuffle=True,
-    #     dataset_root='../../datasets',
-    #     memory_size=0,
-    # )
+    _benchmark_instance = continual_training_benchmark(
+        n_experiences=10, return_task_id=False,
+        seed=1234, shuffle=True,
+        dataset_root='../../datasets',
+        memory_size=0,
+        multi_task=False,
+    )
+
+    _exp = _benchmark_instance.train_stream[0]
+
     #
     # '''obtain fixed class order'''
     # class_exp = _benchmark_instance.original_classes_in_exp
@@ -584,7 +681,7 @@ if __name__ == "__main__":
     #   ('helmet', 'sign'), ('flower', 'wall'), ('door', 'pole'), ('leaves', 'shorts'), ('fence', 'shorts')]]
 
     '''Sys'''
-    _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='sys')
+    # _dataset, _label_info = _get_gqa_datasets('../../datasets', mode='sys')
 
     # _benchmark_instance = fewshot_testing_benchmark(
     #     n_experiences=600, n_way=10, n_shot=10, n_query=10, mode='sys',
@@ -592,20 +689,54 @@ if __name__ == "__main__":
     #     seed=1234, dataset_root='../../datasets',
     # )
 
-    '''Sub'''
-
-
-
-    # from torchvision.transforms import ToPILImage
-    # from matplotlib import pyplot as plt
-    # dataset = benchmark_instance.train_stream[0].dataset
-    # x = dataset[0][0]
-    # y = dataset[0][1]
-    # # img = ToPILImage()(x)
-    # img = x.numpy().transpose([1,2,0])
-    # plt.figure()
-    # plt.imshow(img)
-    # plt.title(f'y:{y}')
-    # plt.show()
+    from torchvision.transforms import ToPILImage
+    from matplotlib import pyplot as plt
+    dataset = _benchmark_instance.train_stream[0].dataset
+    x = dataset[0][0]
+    y = dataset[0][1]
+    # img = ToPILImage()(x)
+    img = x.numpy().transpose([1,2,0])
+    plt.figure()
+    plt.imshow(img)
+    plt.title(f'y:{y}')
+    plt.show()
 
     # check_vision_benchmark(_benchmark_instance, show_without_transforms=True)
+
+    train_transform = create_transform(
+        input_size=224,
+        is_training=True,
+        color_jitter=0.3,     # 颜色抖动
+        auto_augment='rand-m9-mstd0.5-inc1',
+        interpolation='bicubic',
+        re_prob=0.25,
+        re_mode='pixel',
+        re_count=1,
+    )
+    # replace RandomResizedCropAndInterpolation with
+    # Resize, for not
+    train_transform.transforms[0] = transforms.Resize(224, interpolation=InterpolationMode.BICUBIC)
+    # Compose(
+    #     Resize(size=224, interpolation=bicubic, max_size=None, antialias=None)
+    #     RandomHorizontalFlip(p=0.5)
+    #     RandAugment(n=2, ops=
+    # 	AugmentOp(name=AutoContrast, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=Equalize, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=Invert, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=Rotate, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=PosterizeIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=SolarizeIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=SolarizeAdd, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ColorIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ContrastIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=BrightnessIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=SharpnessIncreasing, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ShearX, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=ShearY, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=TranslateXRel, p=0.5, m=9, mstd=0.5)
+    # 	AugmentOp(name=TranslateYRel, p=0.5, m=9, mstd=0.5))
+    #     ToTensor()
+    #     Normalize(mean=tensor([0.4850, 0.4560, 0.4060]), std=tensor([0.2290, 0.2240, 0.2250]))
+    #     RandomErasing(p=0.25, mode=pixel, count=(1, 1))
+    # )
+

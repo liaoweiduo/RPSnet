@@ -41,8 +41,13 @@ class Learner():
         if self.args.sess < self.args.num_train_task:       # continual train
             if(self.args.dataset=="MNIST"):
                 params_set = [self.model.mlp1, self.model.mlp2]
-            else:
+            elif self.args.arch == 'res-18':
                 params_set = [self.model.conv1, self.model.conv2, self.model.conv3, self.model.conv4, self.model.conv5, self.model.conv6, self.model.conv7, self.model.conv8, self.model.conv9]
+            elif self.args.arch == 'vit':
+                assert self.args.L == 5
+                params_set = [self.model.encoder, self.model.l1, self.model.l2, self.model.l3, self.model.l4]
+            else:
+                raise Exception(f'unimplement arch {self.args.arch}')
             for j, params in enumerate(params_set):
                 for i, param in enumerate(params):
                     if(i==self.args.M):     # M_skip
@@ -124,7 +129,11 @@ class Learner():
 #         self.optimizer = optim.Adadelta(trainable_params)
 #         self.optimizer = optim.SGD(trainable_params, lr=self.args.lr, momentum=0.96, weight_decay=0)
         self.optimizer = optim.Adam(trainable_params, lr=self.args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False)
-        
+
+        if hasattr(self.args, 'schedule_mode') and self.args.schedule_mode == 'cos':
+            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, self.args.epochs, 1e-6)
+        else:
+            self.scheduler = None
 
 
 
@@ -285,6 +294,8 @@ class Learner():
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+            if self.scheduler is not None:
+                self.scheduler.step()
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -397,11 +408,12 @@ class Learner():
 #             shutil.copyfile(filepath, os.path.join(checkpoint, 'session_'+str(session)+'_'+str(test_case)+'_model_best.pth.tar') )
 
     def adjust_learning_rate(self, epoch):
-        if epoch in self.args.schedule:
+        if self.scheduler is None and epoch in self.args.schedule:       # only for step schedule
             self.state['lr'] *= self.args.gamma
             for param_group in self.optimizer.param_groups:
                 param_group['lr'] = self.state['lr']
-
+        elif self.scheduler is not None:
+            self.state['lr'] = self.scheduler.get_last_lr()[0]
 
 
     def get_confusion_matrix(self, path):

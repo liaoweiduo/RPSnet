@@ -101,6 +101,7 @@ class Attention(nn.Module):
         out = rearrange(out, 'b h n d -> b n (h d)')
         return self.to_out(out)
 
+
 class T_block(nn.Module):
     def __init__(self, dim, heads, dim_head, mlp_dim, dropout = 0.):
         super().__init__()
@@ -110,6 +111,7 @@ class T_block(nn.Module):
         x = self.attn(x) + x
         x = self.ff(x) + x
         return x
+
 
 class Transformer(nn.Module):
     def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
@@ -122,6 +124,35 @@ class Transformer(nn.Module):
         for blk in self.layers:
             x = blk(x)
         return x
+
+
+class Encoder(nn.Module):
+    def __init__(self, patch_height, patch_width, patch_dim, dim, num_patches, emb_dropout):
+        super().__init__()
+        self.to_patch_embedding = nn.Sequential(
+            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1=patch_height, p2=patch_width),
+            # nn.BatchNorm1d(num_patches),
+            nn.LayerNorm(patch_dim),
+            nn.Linear(patch_dim, dim),
+            # nn.BatchNorm1d(num_patches),
+            nn.LayerNorm(dim),
+        )
+
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.dropout = nn.Dropout(emb_dropout)
+
+    def forward(self, img):
+        x = self.to_patch_embedding(img)
+        b, n, _ = x.shape
+
+        cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b=b)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x += self.pos_embedding[:, :(n + 1)]
+        x = self.dropout(x)
+
+        return x
+
 
 class ViT(nn.Module):
     """
@@ -191,15 +222,25 @@ class MultiHeadRPS_net_ViT(nn.Module):
         self.args = args
         self.image_size = 128
         self.patch_size = 16
-        self.dim = 1024
+        self.dim = 384
         # self.depth = 9
         self.heads = 16
-        self.mlp_dim = 2048
+        self.mlp_dim = 1536
         self.block_dropout = 0.1
         self.emb_dropout = 0.1
         self.pool = 'cls'
         self.channels = 3
         self.dim_head = 64
+
+        # self.to_latent = nn.Identity()
+        # self.mlp_head = nn.Sequential(
+        #     nn.LayerNorm(self.dim),
+        # )
+
+        self.final_layers = []
+        self.init(None)
+
+    def init(self, best_path):
 
         image_height, image_width = pair(self.image_size)
         patch_height, patch_width = pair(self.patch_size)
@@ -210,52 +251,22 @@ class MultiHeadRPS_net_ViT(nn.Module):
         patch_dim = self.channels * patch_height * patch_width
         assert self.pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
 
-        self.to_patch_embedding = nn.Sequential(
-            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width),
-            nn.LayerNorm(patch_dim),
-            nn.Linear(patch_dim, self.dim),
-            nn.LayerNorm(self.dim),
-        )
-
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, self.dim))
-        self.cls_token = nn.Parameter(torch.randn(1, 1, self.dim))
-        self.dropout = nn.Dropout(self.emb_dropout)
-
-        self.to_latent = nn.Identity()
-
-        self.mlp_head = nn.Sequential(
-            nn.LayerNorm(self.dim),
-        )
-
-        self.final_layers = []
-        self.init(None)
-
-    def init(self, best_path):
-        self.conv1 = nn.ModuleList()
-        self.conv2 = nn.ModuleList()
-        self.conv3 = nn.ModuleList()
-        self.conv4 = nn.ModuleList()
-        self.conv5 = nn.ModuleList()
-        self.conv6 = nn.ModuleList()
-        self.conv7 = nn.ModuleList()
-        self.conv8 = nn.ModuleList()
-        self.conv9 = nn.ModuleList()
+        self.encoder = nn.ModuleList()    # encoder
+        self.l1 = nn.ModuleList()
+        self.l2 = nn.ModuleList()
+        self.l3 = nn.ModuleList()
+        self.l4 = nn.ModuleList()
 
         for i in range(self.args.M):
-            self.conv1.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
-            self.conv2.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
-            self.conv3.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
-            self.conv4.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
-            self.conv5.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
-            self.conv6.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
-            self.conv7.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
-            self.conv8.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
-            self.conv9.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+            self.encoder.append(Encoder(patch_height, patch_width, patch_dim, self.dim, num_patches, self.emb_dropout))
+            self.l1.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+            self.l2.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+            self.l3.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+            self.l4.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
 
         # add mx
-        self.conv4.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
-        self.conv6.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
-        self.conv8.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+        self.l2.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+        self.l4.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
 
         # final layer
         if len(self.final_layers) < 1:
@@ -277,81 +288,58 @@ class MultiHeadRPS_net_ViT(nn.Module):
         self.cuda()
 
     def freeze_feature_extractor(self):
-        params_set = [self.conv1, self.conv2, self.conv3, self.conv4, self.conv5,
-                      self.conv6, self.conv7, self.conv8, self.conv9]
+        params_set = [self.encoder, self.l1, self.l2, self.l3, self.l4]
         for j, params in enumerate(params_set):
             for i, param in enumerate(params):
                 param.requires_grad = False
 
     def forward(self, img, path, last):
-        x = self.to_patch_embedding(img)
-        b, n, _ = x.shape
-
-        cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b=b)
-        x = torch.cat((cls_tokens, x), dim=1)
-        x += self.pos_embedding[:, :(n + 1)]
-        x = self.dropout(x)
+        # x = self.to_patch_embedding(img)
+        # b, n, _ = x.shape
+        #
+        # cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b=b)
+        # x = torch.cat((cls_tokens, x), dim=1)
+        # x += self.pos_embedding[:, :(n + 1)]
+        # x = self.dropout(x)
 
         # x = self.transformer(x)
-        y = self.conv1[0](x)
+
+        x = img
+
+        y = self.encoder[0](x)
         for j in range(1, self.args.M):
             if (path[0][j] == 1):
-                y += self.conv1[j](x)
+                y += self.encoder[j](x)
         x = y
 
-        y = self.conv2[0](x)
+        y = self.l1[0](x)
         for j in range(1, self.args.M):
             if (path[1][j] == 1):
-                y += self.conv2[j](x)
+                y += self.l1[j](x)
         x = y
 
-        y = self.conv3[0](x)
-        for j in range(1, self.args.M):
+        y = self.l2[-1](x)
+        for j in range(self.args.M):
             if (path[2][j] == 1):
-                y += self.conv3[j](x)
+                y += self.l2[j](x)
         x = y
 
-        y = self.conv4[-1](x)
-        for j in range(self.args.M):
+        y = self.l3[0](x)
+        for j in range(1, self.args.M):
             if (path[3][j] == 1):
-                y += self.conv4[j](x)
+                y += self.l3[j](x)
         x = y
 
-        y = self.conv5[0](x)
-        for j in range(1, self.args.M):
+        y = self.l4[-1](x)
+        for j in range(self.args.M):
             if (path[4][j] == 1):
-                y += self.conv5[j](x)
+                y += self.l4[j](x)
         x = y
-
-        y = self.conv6[-1](x)
-        for j in range(self.args.M):
-            if (path[5][j] == 1):
-                y += self.conv6[j](x)
-        x = y
-
-        y = self.conv7[0](x)
-        for j in range(1, self.args.M):
-            if (path[6][j] == 1):
-                y += self.conv7[j](x)
-        x = y
-
-        y = self.conv8[-1](x)
-        for j in range(self.args.M):
-            if (path[7][j] == 1):
-                y += self.conv8[j](x)
-        x = y
-
-        y = self.conv9[0](x)
-        for j in range(1, self.args.M):
-            if (path[8][j] == 1):
-                y += self.conv9[j](x)
-        x = y
-
 
         x = x.mean(dim=1) if self.pool == 'mean' else x[:, 0]
 
-        x = self.to_latent(x)
-        x = self.mlp_head(x)
+        # x = self.to_latent(x)
+        # x = self.mlp_head(x)
 
         if type(last) is int:
             x = self.final_layers[last](x)
@@ -367,7 +355,6 @@ class MultiHeadRPS_net_ViT(nn.Module):
 
         return x
 
-
     @property
     def output_size(self):
         return self.dim
@@ -375,7 +362,10 @@ class MultiHeadRPS_net_ViT(nn.Module):
 
 if __name__ == '__main__':
 
-    from models import get_parameter_number
+    def get_parameter_number(model):
+        total_num = sum(p.numel() for p in model.parameters())
+        trainable_num = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        return {'Total': total_num, 'Trainable': trainable_num}
 
     # from vit_pytorch import ViT
     v = ViT(

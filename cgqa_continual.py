@@ -46,7 +46,7 @@ from cgqa import continual_training_benchmark, fewshot_testing_benchmark
 class args:
     epochs = 100
     checkpoint = "../RPSnet-experiments/results/cgqa/RPSnet-resnet-lr1e-3"
-    savepoint = "../RPSnet-experiments/models/cgqa/RPSnet-resnet-lr1e-3"
+    savepoint = checkpoint
     data = '../datasets'
     return_task_id = False      # True for task-IL, False for class-IL
     # labels_data = "prepare/sysgqa_train.pkl"
@@ -67,8 +67,8 @@ class args:
     L = 9
     N = 1
     lr = 0.001
-    train_batch = 10
-    test_batch = 10
+    train_batch = 100
+    test_batch = 100
     workers = 10
     resume = False
     arch = "res-18"        # res-18, vit
@@ -118,13 +118,24 @@ def main(args):
 
     if start_sess < args.num_train_task:     # continual train
         sess_offset = 0
+
+        if args.arch == 'vit':
+            from cgqa import build_transform_for_vit
+
+            train_transform = build_transform_for_vit((args.image_size, args.image_size), True)
+            eval_transform = build_transform_for_vit((args.image_size, args.image_size), False)
+
+        else:
+            train_transform, eval_transform = None, None  # default transform
         benchmark = continual_training_benchmark(
             n_experiences=args.num_train_task, image_size=(args.image_size, args.image_size), return_task_id=args.return_task_id,
             seed=1234, shuffle=True,
             dataset_root=args.data,
+            train_transform=train_transform, eval_transform=eval_transform,
             memory_size=1000,
         )
     else:
+        args.epochs = 20    # fewshot test only do 20 epochs
         if start_sess < args.num_train_task + 1 * args.num_test_task:      # sys
             sess_offset = args.num_train_task
             mode = 'sys'
@@ -141,21 +152,21 @@ def main(args):
             sess_offset = args.num_train_task + 4 * args.num_test_task
             mode = 'noc'
 
-        elif start_sess < args.num_train_task + 6 * args.num_test_task:  # sys    no freeze fe
-            sess_offset = args.num_train_task + 5 * args.num_test_task
-            mode = 'sys'
-        elif start_sess < args.num_train_task + 7 * args.num_test_task:  # pro
-            sess_offset = args.num_train_task + 6 * args.num_test_task
-            mode = 'pro'
-        elif start_sess < args.num_train_task + 8 * args.num_test_task:  # sub
-            sess_offset = args.num_train_task + 7 * args.num_test_task
-            mode = 'sub'
-        elif start_sess < args.num_train_task + 9 * args.num_test_task:  # non
-            sess_offset = args.num_train_task + 8 * args.num_test_task
-            mode = 'non'
-        elif start_sess < args.num_train_task + 10 * args.num_test_task:  # noc
-            sess_offset = args.num_train_task + 9 * args.num_test_task
-            mode = 'noc'
+        # elif start_sess < args.num_train_task + 6 * args.num_test_task:  # sys    no freeze fe
+        #     sess_offset = args.num_train_task + 5 * args.num_test_task
+        #     mode = 'sys'
+        # elif start_sess < args.num_train_task + 7 * args.num_test_task:  # pro
+        #     sess_offset = args.num_train_task + 6 * args.num_test_task
+        #     mode = 'pro'
+        # elif start_sess < args.num_train_task + 8 * args.num_test_task:  # sub
+        #     sess_offset = args.num_train_task + 7 * args.num_test_task
+        #     mode = 'sub'
+        # elif start_sess < args.num_train_task + 9 * args.num_test_task:  # non
+        #     sess_offset = args.num_train_task + 8 * args.num_test_task
+        #     mode = 'non'
+        # elif start_sess < args.num_train_task + 10 * args.num_test_task:  # noc
+        #     sess_offset = args.num_train_task + 9 * args.num_test_task
+        #     mode = 'noc'
         else:
             raise Exception(f'sess error: {start_sess}.')
 
