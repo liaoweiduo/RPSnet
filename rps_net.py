@@ -140,7 +140,6 @@ class MultiHeadRPS_net(nn.Module):
                 #     exec(f"self.final_layer{i+1} = nn.Linear(512, self.args.num_test_class)")    # 10
                 #     exec(f"self.final_layers.append(self.final_layer{i+1})")
 
-        self.cuda()
 
     def freeze_feature_extractor(self):
         params_set = [self.conv1, self.conv2, self.conv3, self.conv4, self.conv5,

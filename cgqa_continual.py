@@ -94,15 +94,16 @@ if use_cuda:
 
 
 def main(args):
-    
     if args.arch == 'res-18':
-        model = MultiHeadRPS_net(args).cuda()
+        model = MultiHeadRPS_net(args)
     elif args.arch == 'vit':
-        model = MultiHeadRPS_net_ViT(args).cuda()
+        model = MultiHeadRPS_net_ViT(args)
     else:
         raise Exception(f'un implemented arch: {args.arch}')
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1024 /1024))
-    
+
+    if use_cuda:
+        model = model.cuda()
     
     if not os.path.isdir(args.checkpoint):
         mkdir_p(args.checkpoint)

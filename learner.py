@@ -182,7 +182,17 @@ class Learner():
                         'best_acc': self.best_acc,
                         'optimizer' : self.optimizer.state_dict(),
                 }, is_best, checkpoint=self.args.savepoint,filename='session_'+str(self.args.sess)+'_' + str(self.args.test_case)+'_checkpoint.pth.tar',session=self.args.sess, test_case=self.args.test_case)
-        
+
+            # early stop for 20 epochs
+            # todo: warning: cannot use early stop, because after finish 1 sess, need to check if finish current epochs
+            #   this is the criterion for starting next sess.
+            # if is_best:
+            #     self.epochs_overfitting = epoch
+            #
+            # if self.epochs_overfitting <= epoch - 20:  # patience for 10epochs
+            #     print(f'early stop at epoch: {epoch}')
+            #     break
+
         logger.close()
         logger.plot()
         savefig(os.path.join(self.args.checkpoint, 'log.eps'))

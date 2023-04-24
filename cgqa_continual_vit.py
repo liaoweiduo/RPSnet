@@ -46,7 +46,7 @@ from cgqa_continual import main
 
 class args:
     epochs = 200
-    checkpoint = "../RPSnet-experiments/results/cgqa/RPSnet-vit-lr1e-4"
+    checkpoint = "../RPSnet-experiments/results/cgqa/RPSnet-vit-lr1e-5"
     savepoint = checkpoint
     data = '../datasets'
     return_task_id = False      # True for task-IL, False for class-IL
@@ -67,7 +67,7 @@ class args:
 
     L = 5           # encoder + 4 (MHA+FF)
     N = 1
-    lr = 0.0001
+    lr = 1e-5
     train_batch = 100
     test_batch = 100
     workers = 10
