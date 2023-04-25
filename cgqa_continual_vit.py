@@ -45,14 +45,15 @@ from cgqa_continual import main
 
 
 class args:
-    epochs = 200
-    checkpoint = "../RPSnet-experiments/results/cgqa/RPSnet-vit-lr1e-5"
-    savepoint = checkpoint
+    epochs = 300
+    exp_name = "RPSnet-vit-lr1e-4"
+    checkpoint = "../RPSnet-experiments/results/cgqa/" + exp_name
+    savepoint = "../RPSnet-experiments/models/cgqa/" + exp_name
     data = '../datasets'
     return_task_id = False      # True for task-IL, False for class-IL
     # labels_data = "prepare/sysgqa_train.pkl"
 
-    image_size = 128
+    image_size = 224
 
     num_class = 100         # no use
     # for task-IL, should be 10, for class-IL, should be 100
@@ -65,9 +66,9 @@ class args:
     num_test_task = 300     # with num_class together, use to define the classifier: (300 + 10) * [100]
     num_test_class = 10
 
-    L = 5           # encoder + 4 (MHA+FF)
+    L = 10           # encoder + 9 (MHA+FF)
     N = 1
-    lr = 1e-5
+    lr = 1e-4
     train_batch = 100
     test_batch = 100
     workers = 10

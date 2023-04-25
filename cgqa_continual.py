@@ -45,8 +45,9 @@ from cgqa import continual_training_benchmark, fewshot_testing_benchmark
 
 class args:
     epochs = 100
-    checkpoint = "../RPSnet-experiments/results/cgqa/RPSnet-resnet-lr1e-3"
-    savepoint = checkpoint
+    exp_name = "RPSnet-resnet-lr1e-3"
+    checkpoint = "../RPSnet-experiments/results/cgqa/" + exp_name
+    savepoint = "../RPSnet-experiments/models/cgqa/" + exp_name
     data = '../datasets'
     return_task_id = False      # True for task-IL, False for class-IL
     # labels_data = "prepare/sysgqa_train.pkl"

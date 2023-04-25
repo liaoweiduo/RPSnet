@@ -256,6 +256,11 @@ class MultiHeadRPS_net_ViT(nn.Module):
         self.l2 = nn.ModuleList()
         self.l3 = nn.ModuleList()
         self.l4 = nn.ModuleList()
+        self.l5 = nn.ModuleList()
+        self.l6 = nn.ModuleList()
+        self.l7 = nn.ModuleList()
+        self.l8 = nn.ModuleList()
+        self.l9 = nn.ModuleList()
 
         for i in range(self.args.M):
             self.encoder.append(Encoder(patch_height, patch_width, patch_dim, self.dim, num_patches, self.emb_dropout))
@@ -263,10 +268,16 @@ class MultiHeadRPS_net_ViT(nn.Module):
             self.l2.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
             self.l3.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
             self.l4.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+            self.l5.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+            self.l6.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+            self.l7.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+            self.l8.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+            self.l9.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
 
         # add mx
-        self.l2.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
         self.l4.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+        self.l6.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
+        self.l8.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
 
         # final layer
         if len(self.final_layers) < 1:
@@ -288,7 +299,7 @@ class MultiHeadRPS_net_ViT(nn.Module):
         self.cuda()
 
     def freeze_feature_extractor(self):
-        params_set = [self.encoder, self.l1, self.l2, self.l3, self.l4]
+        params_set = [self.encoder, self.l1, self.l2, self.l3, self.l4, self.l5, self.l6, self.l7, self.l8, self.l9]
         for j, params in enumerate(params_set):
             for i, param in enumerate(params):
                 param.requires_grad = False
@@ -318,8 +329,8 @@ class MultiHeadRPS_net_ViT(nn.Module):
                 y += self.l1[j](x)
         x = y
 
-        y = self.l2[-1](x)
-        for j in range(self.args.M):
+        y = self.l2[0](x)
+        for j in range(1, self.args.M):
             if (path[2][j] == 1):
                 y += self.l2[j](x)
         x = y
@@ -334,6 +345,36 @@ class MultiHeadRPS_net_ViT(nn.Module):
         for j in range(self.args.M):
             if (path[4][j] == 1):
                 y += self.l4[j](x)
+        x = y
+
+        y = self.l5[0](x)
+        for j in range(1, self.args.M):
+            if (path[5][j] == 1):
+                y += self.l5[j](x)
+        x = y
+
+        y = self.l6[-1](x)
+        for j in range(self.args.M):
+            if (path[6][j] == 1):
+                y += self.l6[j](x)
+        x = y
+
+        y = self.l7[0](x)
+        for j in range(1, self.args.M):
+            if (path[7][j] == 1):
+                y += self.l7[j](x)
+        x = y
+
+        y = self.l8[-1](x)
+        for j in range(self.args.M):
+            if (path[8][j] == 1):
+                y += self.l8[j](x)
+        x = y
+
+        y = self.l9[0](x)
+        for j in range(1, self.args.M):
+            if (path[9][j] == 1):
+                y += self.l9[j](x)
         x = y
 
         x = x.mean(dim=1) if self.pool == 'mean' else x[:, 0]

@@ -44,8 +44,8 @@ class Learner():
             elif self.args.arch == 'res-18':
                 params_set = [self.model.conv1, self.model.conv2, self.model.conv3, self.model.conv4, self.model.conv5, self.model.conv6, self.model.conv7, self.model.conv8, self.model.conv9]
             elif self.args.arch == 'vit':
-                assert self.args.L == 5
-                params_set = [self.model.encoder, self.model.l1, self.model.l2, self.model.l3, self.model.l4]
+                assert self.args.L == 10
+                params_set = [self.model.encoder, self.model.l1, self.model.l2, self.model.l3, self.model.l4, self.model.l5, self.model.l6, self.model.l7, self.model.l8, self.model.l9]
             else:
                 raise Exception(f'unimplement arch {self.args.arch}')
             for j, params in enumerate(params_set):
@@ -58,7 +58,9 @@ class Learner():
                             p = {'params': param.parameters()}
                             trainable_params.append(p)
                         else:
-                            param.requires_grad = False
+                            # param.requires_grad = False
+                            for i, p in enumerate(param):
+                                p.requires_grad = False
 
         if self.args.sess < self.args.num_train_task:       # continual train
             if self.args.return_task_id:        # task-IL
@@ -67,12 +69,16 @@ class Learner():
                         p = {'params': self.model.final_layers[j].parameters()}     # all trained classifiers since memory-based
                         trainable_params.append(p)
                     else:
-                        self.model.final_layers[j].requires_grad = False
+                        # self.model.final_layers[j].requires_grad = False
+                        for i, p in enumerate(self.model.final_layers[j]):
+                            p.requires_grad = False
             else:       # class-IL
                 assert len(self.model.final_layers) == 2
                 p = {'params': self.model.final_layers[0].parameters()}  # classifier
                 trainable_params.append(p)
-                self.model.final_layers[1].requires_grad = False
+                # self.model.final_layers[1].requires_grad = False
+                for i, p in enumerate(self.model.final_layers[1]):  # classifier for fewshot test
+                    p.requires_grad = False
 
         else:       # fewshot test
             # if self.args.return_task_id:        # task-IL
@@ -118,7 +124,9 @@ class Learner():
             p = {'params': self.model.final_layers[-1].parameters()}
             trainable_params.append(p)
             for j in range(len(self.model.final_layers)-1):
-                self.model.final_layers[j].requires_grad = False
+                # self.model.final_layers[j].requires_grad = False
+                for i, p in enumerate(self.model.final_layers[j]):
+                    p.requires_grad = False
 
         print("Number of layers being trained : " , len(trainable_params))
 
