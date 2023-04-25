@@ -59,7 +59,7 @@ class Learner():
                             trainable_params.append(p)
                         else:
                             # param.requires_grad = False
-                            for i, p in enumerate(param):
+                            for p in param.parameters():
                                 p.requires_grad = False
 
         if self.args.sess < self.args.num_train_task:       # continual train
@@ -70,14 +70,14 @@ class Learner():
                         trainable_params.append(p)
                     else:
                         # self.model.final_layers[j].requires_grad = False
-                        for i, p in enumerate(self.model.final_layers[j]):
+                        for p in self.model.final_layers[j].parameters():
                             p.requires_grad = False
             else:       # class-IL
                 assert len(self.model.final_layers) == 2
                 p = {'params': self.model.final_layers[0].parameters()}  # classifier
                 trainable_params.append(p)
                 # self.model.final_layers[1].requires_grad = False
-                for i, p in enumerate(self.model.final_layers[1]):  # classifier for fewshot test
+                for p in self.model.final_layers[1].parameters():  # classifier for fewshot test
                     p.requires_grad = False
 
         else:       # fewshot test
@@ -125,7 +125,7 @@ class Learner():
             trainable_params.append(p)
             for j in range(len(self.model.final_layers)-1):
                 # self.model.final_layers[j].requires_grad = False
-                for i, p in enumerate(self.model.final_layers[j]):
+                for p in self.model.final_layers[j].parameters():
                     p.requires_grad = False
 
         print("Number of layers being trained : " , len(trainable_params))
