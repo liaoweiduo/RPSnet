@@ -220,7 +220,7 @@ class MultiHeadRPS_net_ViT(nn.Module):
     def __init__(self, args):
         super().__init__()
         self.args = args
-        self.image_size = 128
+        self.image_size = args.image_size
         self.patch_size = 16
         self.dim = 384
         # self.depth = 9
