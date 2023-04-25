@@ -69,8 +69,8 @@ class args:
     L = 10           # encoder + 9 (MHA+FF)
     N = 1
     lr = 1e-4
-    train_batch = 100
-    test_batch = 100
+    train_batch = 50
+    test_batch = 50
     workers = 10
     resume = False
     arch = "vit"
