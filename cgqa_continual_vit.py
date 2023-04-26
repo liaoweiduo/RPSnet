@@ -46,7 +46,7 @@ from cgqa_continual import main
 
 class args:
     epochs = 200
-    exp_name = "RPSnet-vit-lr1e-5"
+    exp_name = "RPSnet-vit-lr1e-4"
     checkpoint = "../RPSnet-experiments/results/cgqa/" + exp_name
     savepoint = "../RPSnet-experiments/models/cgqa/" + exp_name
     data = '../datasets'
@@ -68,7 +68,7 @@ class args:
 
     L = 10           # encoder + 9 (MHA+FF)
     N = 1
-    lr = 1e-5
+    lr = 1e-4
     train_batch = 50
     test_batch = 50
     workers = 10

@@ -30,7 +30,7 @@
 #done
 
 # for only 4 GPUs
-for i_n in {0..1509}
+for i_n in {1..1509}
 do
   CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 0 $i_n &
   CUDA_VISIBLE_DEVICES=1 python3 cgqa_continual_vit.py 1 $i_n &
