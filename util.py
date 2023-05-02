@@ -44,14 +44,41 @@ def is_all_done(task_search,q ,checkpoint):
 
     best_acc = []
     best_acc_b = []
+    num_check = 0
     for file in log_files_b:
         f = np.loadtxt(checkpoint+"/"+file, skiprows=1)
         print(len(f))
-        if(len(f)!=q):
+        if(len(f)<q):      # '!=' -> '<' modify for epochs < current run;
             return False
     return True
 
 
+def enough_done_tests(task_search, threshold,checkpoint):
+    print(f'check done tests for task {task_search}')
+    log_files_a = os.listdir(checkpoint+"/")
+    log_files_b = []
+
+    for file in log_files_a:
+        file_split = file.split(".")
+        if(file_split[-1]=="txt"):
+            file_split_2 = file_split[0].split("_")
+            if(file_split_2[0]=="session" and file_split_2[1]==str(task_search) ):
+                log_files_b.append(file)
+
+    best_acc = []
+    best_acc_b = []
+    num_check = 0
+    for file in log_files_b:
+        f = np.loadtxt(checkpoint+"/"+file, skiprows=1)
+        print(len(f))
+        if len(f) > 0:      # early stopped, so do not check with epochs.
+            num_check += 1
+
+    print(f'num_check for task {task_search}: {num_check}')
+    if num_check >= threshold:
+        return True
+    else:
+        return False
 
 
 def get_path(L, M, N):

@@ -116,6 +116,11 @@ def main(args):
     start_sess = int(sys.argv[2])
     test_case = sys.argv[1]
 
+    '''check if more than 8 test cases on the last sess'''
+    if start_sess > 0:
+        if not enough_done_tests(start_sess - 1, 8, args.checkpoint):
+            raise Exception(f'sess {start_sess - 1} is un-finished')
+
     args.test_case = test_case
 
     if start_sess < args.num_train_task:     # continual train
@@ -303,13 +308,13 @@ def main(args):
         # best_model = get_best_model(ses, args.checkpoint)
         
         
-    print('done with session {:d}'.format(ses))
-    print('#################################################################################')
-    while(1):
-        if(is_all_done(ses, args.epochs, args.checkpoint)):
-            break
-        else:
-            time.sleep(30)
+    # print('done with session {:d}'.format(ses))
+    # print('#################################################################################')
+    # while(1):
+    #     if(is_all_done(ses, args.epochs, args.checkpoint)):
+    #         break
+    #     else:
+    #         time.sleep(30)
             
     
 if __name__ == '__main__':
