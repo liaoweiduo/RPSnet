@@ -332,55 +332,55 @@ class MultiHeadRPS_net_ViT(nn.Module):
 
         y = self.l1[0](x)
         for j in range(1, self.args.M):
-            if (path[1][j] == 1):
+            if (path[0][j] == 1):
                 y += self.l1[j](x)
         x = y
 
         y = self.l2[0](x)
         for j in range(1, self.args.M):
-            if (path[2][j] == 1):
+            if (path[1][j] == 1):
                 y += self.l2[j](x)
         x = y
 
         y = self.l3[0](x)
         for j in range(1, self.args.M):
-            if (path[3][j] == 1):
+            if (path[2][j] == 1):
                 y += self.l3[j](x)
         x = y
 
         y = self.l4[-1](x)
         for j in range(self.args.M):
-            if (path[4][j] == 1):
+            if (path[3][j] == 1):
                 y += self.l4[j](x)
         x = y
 
         y = self.l5[0](x)
         for j in range(1, self.args.M):
-            if (path[5][j] == 1):
+            if (path[4][j] == 1):
                 y += self.l5[j](x)
         x = y
 
         y = self.l6[-1](x)
         for j in range(self.args.M):
-            if (path[6][j] == 1):
+            if (path[5][j] == 1):
                 y += self.l6[j](x)
         x = y
 
         y = self.l7[0](x)
         for j in range(1, self.args.M):
-            if (path[7][j] == 1):
+            if (path[6][j] == 1):
                 y += self.l7[j](x)
         x = y
 
         y = self.l8[-1](x)
         for j in range(self.args.M):
-            if (path[8][j] == 1):
+            if (path[7][j] == 1):
                 y += self.l8[j](x)
         x = y
 
         y = self.l9[0](x)
         for j in range(1, self.args.M):
-            if (path[9][j] == 1):
+            if (path[8][j] == 1):
                 y += self.l9[j](x)
         x = y
 
