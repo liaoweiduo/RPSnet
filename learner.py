@@ -49,6 +49,11 @@ class Learner():
             else:
                 raise Exception(f'unimplement arch {self.args.arch}')
             for j, params in enumerate(params_set):
+                if j == 0 and self.args.arch == 'vit':      # encoder
+                    p = {'params': params.parameters()}
+                    trainable_params.append(p)
+                    continue
+
                 for i, param in enumerate(params):
                     if(i==self.args.M):     # M_skip
                         p = {'params': param.parameters()}
