@@ -44,7 +44,7 @@ class Learner():
             elif self.args.arch == 'res-18':
                 params_set = [self.model.conv1, self.model.conv2, self.model.conv3, self.model.conv4, self.model.conv5, self.model.conv6, self.model.conv7, self.model.conv8, self.model.conv9]
             elif self.args.arch == 'vit':
-                assert self.args.L == 10
+                assert self.args.L == 9
                 params_set = [self.model.encoder, self.model.l1, self.model.l2, self.model.l3, self.model.l4, self.model.l5, self.model.l6, self.model.l7, self.model.l8, self.model.l9]
             else:
                 raise Exception(f'unimplement arch {self.args.arch}')
