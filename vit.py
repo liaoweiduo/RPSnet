@@ -251,7 +251,8 @@ class MultiHeadRPS_net_ViT(nn.Module):
         patch_dim = self.channels * patch_height * patch_width
         assert self.pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
 
-        self.encoder = nn.ModuleList()    # encoder
+        self.encoder = Encoder(patch_height, patch_width, patch_dim, self.dim, num_patches, self.emb_dropout)
+        # self.encoder = nn.ModuleList()    # encoder
         self.l1 = nn.ModuleList()
         self.l2 = nn.ModuleList()
         self.l3 = nn.ModuleList()
@@ -263,7 +264,7 @@ class MultiHeadRPS_net_ViT(nn.Module):
         self.l9 = nn.ModuleList()
 
         for i in range(self.args.M):
-            self.encoder.append(Encoder(patch_height, patch_width, patch_dim, self.dim, num_patches, self.emb_dropout))
+            # self.encoder.append(Encoder(patch_height, patch_width, patch_dim, self.dim, num_patches, self.emb_dropout))
             self.l1.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
             self.l2.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
             self.l3.append(T_block(self.dim, self.heads, self.dim_head, self.mlp_dim, self.block_dropout))
@@ -317,11 +318,12 @@ class MultiHeadRPS_net_ViT(nn.Module):
 
         x = img
 
-        y = self.encoder[0](x)
-        for j in range(1, self.args.M):
-            if (path[0][j] == 1):
-                y += self.encoder[j](x)
-        x = y
+        # y = self.encoder[0](x)
+        # for j in range(1, self.args.M):
+        #     if (path[0][j] == 1):
+        #         y += self.encoder[j](x)
+        # x = y
+        x = self.encoder(x)
 
         y = self.l1[0](x)
         for j in range(1, self.args.M):

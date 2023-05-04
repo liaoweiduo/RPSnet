@@ -139,7 +139,7 @@ def main(args):
             seed=1234, shuffle=True,
             dataset_root=args.data,
             train_transform=train_transform, eval_transform=eval_transform,
-            memory_size=1000,
+            memory_size=1000 if args.arch != 'vit' else 2000,
         )
     else:
         args.epochs = 20    # fewshot test only do 20 epochs
@@ -228,19 +228,20 @@ def main(args):
 
             load_test_case = get_best_model(load_model_ses, args.checkpoint)
             print(f'get_best_model: {load_model_ses}, with test case: {load_test_case}')
-            if(ses%args.jump==0) or ses >= args.num_train_task:   # get a new path             for all novel testing,
+            if(ses%args.jump==0) and ses < args.num_train_task:   # get a new path
                 fixed_path = np.load(args.checkpoint+"/fixed_path_"+str(load_model_ses)+"_"+str(load_test_case)+".npy")
                 train_path = get_path(args.L,args.M,args.N)*0 
                 path = get_path(args.L,args.M,args.N)
             else:
-                if((ses//args.jump)*2==0):  # ses == 1
+                if ses >= args.num_train_task: #     for all novel testing,
+                    fixed_path = np.load(args.checkpoint+"/fixed_path_"+str(load_model_ses)+"_"+str(load_test_case)+".npy")
+                elif((ses//args.jump)*2==0):  # ses == 1 when jump=2, ses == 2 when jump=3
                     fixed_path = get_path(args.L,args.M,args.N)*0
                 else:
                     load_test_case_x = get_best_model((ses//args.jump)*2-1, args.checkpoint)
-                    print(f'get_best_model_: {(ses//args.jump)*2-1}, with test case: {load_test_case_x}')
+                    print(f'get_fixed_path: {(ses//args.jump)*2-1}, with test case: {load_test_case_x}')
                     fixed_path = np.load(args.checkpoint+"/fixed_path_"+str((ses//args.jump)*2-1)+"_"+str(load_test_case_x)+".npy")
                 path = np.load(args.checkpoint+"/path_"+str(load_model_ses)+"_"+str(load_test_case)+".npy")
-            
                 train_path = get_path(args.L,args.M,args.N)*0 
             infer_path = get_path(args.L,args.M,args.N)*0 
             for j in range(args.L):

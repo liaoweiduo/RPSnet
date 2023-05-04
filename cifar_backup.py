@@ -33,39 +33,33 @@ import sys
 import random
 
 
-from rps_net import MultiHeadRPS_net
-from learner import Learner
+from rps_net import RPS_net_cifar
+from learner_backup import Learner
 from util import *
 from cifar_dataset import CIFAR100
 
-from scifar100 import continual_training_benchmark
 
 class args:
 
-    exp_name = "cifar100-t10"
+    exp_name = "cifar10"
     checkpoint = "../RPSnet-experiments/results/cifar100/" + exp_name
     savepoint = "../RPSnet-experiments/models/cifar100/" + exp_name
-    data = '../datasets'
-    return_task_id = False      # True for task-IL, False for class-IL
-    # labels_data = "../RPSnet-experiments/prepare/cifar100_10.pkl"
+    labels_data = "../RPSnet-experiments/prepare/cifar100_10.pkl"
     
     num_class = 100
     class_per_task = 10
-    benchmark_seed = 1234
     M = 8
     jump = 2
     rigidness_coff = 2.5
     dataset = "CIFAR"
-    num_train_task = 10
-    num_test_class = 10
     
     epochs = 100
     L = 9
     N = 1
     lr = 0.001
-    train_batch = 100
-    test_batch = 100
-    workers = 10
+    train_batch = 128
+    test_batch = 128
+    workers = 16
     resume = False
     arch = "res-18"
     start_epoch = 0
@@ -93,15 +87,10 @@ if use_cuda:
 def main():
 
 
-    model = MultiHeadRPS_net(args).cuda()
+    model = RPS_net_cifar(args).cuda() 
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
 
-
-    new_seed = int(sys.argv[3])
-    args.benchmark_seed = new_seed
-    args.exp_name = "cifar100-t10" + f'seed{new_seed}'
-    args.checkpoint = "../RPSnet-experiments/results/cifar100/" + args.exp_name
-    args.savepoint = "../RPSnet-experiments/models/cifar100/" + args.exp_name
+    
     
     # if not os.path.isdir(args.checkpoint):
     #     mkdir_p(args.checkpoint)
@@ -139,47 +128,10 @@ def main():
     test_case = sys.argv[1]
     args.test_case = test_case
 
-    '''check if more than 8 test cases on the last sess'''
-    if start_sess > 0:
-        if not enough_done_tests(start_sess - 1, 8, args.checkpoint):
-            raise Exception(f'sess {start_sess - 1} is un-finished')
+    inds_all_sessions=pickle.load(open(args.labels_data,'rb'))
 
-    # inds_all_sessions=pickle.load(open(args.labels_data,'rb'))
-
-    benchmark = continual_training_benchmark(
-        n_experiences=args.num_train_task, image_size=(32, 32), return_task_id=args.return_task_id,
-        seed=args.benchmark_seed, shuffle=True,
-        dataset_root=args.data,
-        memory_size=1000,
-    )
         
     for ses in range(start_sess, start_sess+1):
-
-        ##############################  data loader #####################
-
-        train_dataset = benchmark.train_stream[ses].dataset
-        val_datasets = [
-            benchmark.test_stream[ses_index].dataset
-            for ses_index in range(ses + 1)
-        ]
-        val_dataset = torch.utils.data.ConcatDataset(val_datasets)
-
-
-        train_sampler = None
-
-        trainloader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.train_batch, shuffle=(train_sampler is None),
-            num_workers=args.workers,
-            pin_memory=False, sampler=train_sampler)
-
-        testloader = torch.utils.data.DataLoader(
-            val_dataset,
-            batch_size=args.test_batch, shuffle=False,
-            num_workers=args.workers,
-            pin_memory=False)
-        ############################## data loader  ######################
-
-
         if(ses==0):
             path = get_path(args.L,args.M,args.N)*0 
             path[:,0] = 1
@@ -219,19 +171,17 @@ def main():
         print("train_path\n", train_path)
         
     
-        # ind_this_session=inds_all_sessions[ses]
-        # ind_trn= ind_this_session['curent']
-        # if ses > 0: ind_trn = np.concatenate([ind_trn,  np.tile(inds_all_sessions[ses-1]['exmp'],int(1))]).ravel()
-        # ind_tst=inds_all_sessions[ses]['test']
-        #
-        #
-        # trainset = dataloader(root='./data', train=True, download=True, transform=transform_train,ind=ind_trn)
-        # trainloader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True,num_workers=args.workers)
-        # testset = dataloader(root='./data', train=False, download=False, transform=transform_test,ind=ind_tst)
-        # testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
+        ind_this_session=inds_all_sessions[ses]    
+        ind_trn= ind_this_session['curent']
+        if ses > 0: ind_trn = np.concatenate([ind_trn,  np.tile(inds_all_sessions[ses-1]['exmp'],int(1))]).ravel()
+        ind_tst=inds_all_sessions[ses]['test']
 
-        print('trn_instances len:', len(train_dataset))
-        print('val_instances len:', len(val_dataset))
+        
+        trainset = dataloader(root='./data', train=True, download=True, transform=transform_train,ind=ind_trn)
+        trainloader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True,num_workers=args.workers)
+        testset = dataloader(root='./data', train=False, download=False, transform=transform_test,ind=ind_tst)
+        testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
+        
         
         args.sess=ses      
         if ses>0: 
@@ -257,19 +207,19 @@ def main():
         np.save(args.checkpoint+"/fixed_path_"+str(ses)+"_"+str(test_case)+".npy", fixed_path)
         
         
-        # best_model = get_best_model(ses, args.checkpoint)
-        #
-        # cfmat = main_learner.get_confusion_matrix(infer_path)
-        # np.save(args.checkpoint+"/confusion_matrix_"+str(ses)+"_"+str(test_case)+".npy", cfmat)
+        best_model = get_best_model(ses, args.checkpoint)
+    
+        cfmat = main_learner.get_confusion_matrix(infer_path)
+        np.save(args.checkpoint+"/confusion_matrix_"+str(ses)+"_"+str(test_case)+".npy", cfmat)
         
         
-    # print('done with session {:d}'.format(ses))
-    # print('#################################################################################')
-    # while(1):
-    #     if(is_all_done(ses, args.epochs, args.checkpoint)):
-    #         break
-    #     else:
-    #         time.sleep(10)
+    print('done with session {:d}'.format(ses))
+    print('#################################################################################')
+    while(1):
+        if(is_all_done(ses, args.epochs, args.checkpoint)):
+            break
+        else:
+            time.sleep(10)
             
             
             
