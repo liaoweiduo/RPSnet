@@ -45,15 +45,15 @@ class Learner():
                 params_set = [self.model.conv1, self.model.conv2, self.model.conv3, self.model.conv4, self.model.conv5, self.model.conv6, self.model.conv7, self.model.conv8, self.model.conv9]
             elif self.args.arch == 'vit':
                 assert self.args.L == 9
-                params_set = [self.model.encoder, self.model.l1, self.model.l2, self.model.l3, self.model.l4, self.model.l5, self.model.l6, self.model.l7, self.model.l8, self.model.l9]
+                params_set = [self.model.l1, self.model.l2, self.model.l3, self.model.l4, self.model.l5, self.model.l6, self.model.l7, self.model.l8, self.model.l9]
             else:
                 raise Exception(f'unimplement arch {self.args.arch}')
-            for j, params in enumerate(params_set):
-                if j == 0 and self.args.arch == 'vit':      # encoder
-                    p = {'params': params.parameters()}
-                    trainable_params.append(p)
-                    continue
 
+            if self.args.arch == 'vit':      # encoder
+                p = {'params': self.model.encoder.parameters()}
+                trainable_params.append(p)
+
+            for j, params in enumerate(params_set):
                 for i, param in enumerate(params):
                     if(i==self.args.M):     # M_skip
                         p = {'params': param.parameters()}

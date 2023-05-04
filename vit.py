@@ -300,10 +300,15 @@ class MultiHeadRPS_net_ViT(nn.Module):
         self.cuda()
 
     def freeze_feature_extractor(self):
-        params_set = [self.encoder, self.l1, self.l2, self.l3, self.l4, self.l5, self.l6, self.l7, self.l8, self.l9]
+        for p in self.encoder.parameters():
+            p.requires_grad = False
+
+        params_set = [self.l1, self.l2, self.l3, self.l4, self.l5, self.l6, self.l7, self.l8, self.l9]
         for j, params in enumerate(params_set):
             for i, param in enumerate(params):
-                param.requires_grad = False
+                # param.requires_grad = False
+                for p in param.parameters():
+                    p.requires_grad = False
 
     def forward(self, img, path, last):
         # x = self.to_patch_embedding(img)

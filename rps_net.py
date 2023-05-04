@@ -146,7 +146,9 @@ class MultiHeadRPS_net(nn.Module):
                       self.conv6, self.conv7, self.conv8, self.conv9]
         for j, params in enumerate(params_set):
             for i, param in enumerate(params):
-                param.requires_grad = False
+                # param.requires_grad = False
+                for p in param.parameters():
+                    p.requires_grad = False
 
     def forward(self, x, path, last):
 
