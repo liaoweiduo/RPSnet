@@ -5,7 +5,7 @@
 CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 0 0
 
 # for only 1 GPU
-for i_n in {1..1509}
+for i_n in {1..9}
 do
   CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 0 $i_n
   CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 1 $i_n
@@ -15,6 +15,11 @@ do
   CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 5 $i_n
   CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 6 $i_n
   CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 7 $i_n
+done
+
+for i_n in {10..1509}   # for fewshot, only once, since use all trained modules when doing inference.
+do
+  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 0 $i_n
 done
 
 # for only 2 GPUs
