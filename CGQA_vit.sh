@@ -2,7 +2,7 @@
 
 # continual 0...9; sys 10..309; pro 310...609; sub 610..909; non 910..1209; noc 1210..1509
 
-CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 0 0
+#CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 0 0
 
 # for only 1 GPU
 for i_n in {1..9}
