@@ -117,14 +117,12 @@ def main(args):
     test_case = sys.argv[1]
 
     '''check if more than 8 test cases on the last sess'''
-    if 1 < start_sess <= args.num_train_task:       # the first fewshot test check the last continual task, need 8
-        if not enough_done_tests(start_sess - 1, 8, args.checkpoint):
-            raise Exception(f'sess {start_sess - 1} is un-finished')
-    elif start_sess == 1 or start_sess > args.num_train_task:
-        # the first sess only train 1 case
-        # few shot only do 1 time, start from the second fewshot test
-        if not enough_done_tests(start_sess - 1, 1, args.checkpoint):
-            raise Exception(f'sess {start_sess - 1} is un-finished')
+    runs = [8 if ses % args.jump == 0 and ses > 0 else 1 for ses in range(args.num_train_task)]
+    # [1, 1, 8, 1, 8, 1, 8, 1, 8, 1]
+    runs.append(1)      # all fewshot run only once
+    check_ses = start_sess - 1
+    if check_ses > 0 and not enough_done_tests(check_ses, runs[check_ses if check_ses < args.num_train_task else -1], args.checkpoint):
+        raise Exception(f'sess {check_ses} is un-finished')
 
     args.test_case = test_case
 
