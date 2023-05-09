@@ -40,7 +40,6 @@ from util import *
 from cifar_dataset import CIFAR100
 
 from avalanche.benchmarks.utils import PathsDataset
-from cgqa import continual_training_benchmark, fewshot_testing_benchmark
 
 
 class args:
@@ -80,10 +79,6 @@ class args:
     schedule = [20, 40, 60, 80]
     gamma = 0.5
 
-
-state = {key:value for key, value in args.__dict__.items() if not key.startswith('__') and not callable(key)}
-print(state)
-
 # Use CUDA
 use_cuda = torch.cuda.is_available()
 
@@ -95,6 +90,10 @@ if use_cuda:
 
 
 def main(args):
+
+    state = {key: value for key, value in args.__dict__.items() if not key.startswith('__') and not callable(key)}
+    print(state)
+
     if args.arch == 'res-18':
         model = MultiHeadRPS_net(args)
     elif args.arch == 'vit':
@@ -120,7 +119,8 @@ def main(args):
     runs = [8 if ses % args.jump == 0 and ses > 0 else 1 for ses in range(args.num_train_task)]
     # [1, 1, 8, 1, 8, 1, 8, 1, 8, 1]
     runs.append(1)      # all fewshot run only once
-    check_ses = start_sess - 1
+    check_ses = start_sess - 1 if start_sess < args.num_train_task else args.num_train_task - 1
+    # for fewshot, just check the last continual
     if check_ses > 0 and not enough_done_tests(check_ses, runs[check_ses if check_ses < args.num_train_task else -1], args.checkpoint):
         raise Exception(f'sess {check_ses} is un-finished')
 
@@ -137,6 +137,13 @@ def main(args):
 
         else:
             train_transform, eval_transform = None, None  # default transform
+        if args.dataset == 'CGQA':
+            from cgqa import continual_training_benchmark
+        elif args.dataset == 'COBJ':
+            from cobj import continual_training_benchmark
+        else:
+            raise Exception(f'un implemented dataset: {args.dataset}')
+
         benchmark = continual_training_benchmark(
             n_experiences=args.num_train_task, image_size=(args.image_size, args.image_size), return_task_id=args.return_task_id,
             seed=1234, shuffle=True,
@@ -180,10 +187,17 @@ def main(args):
         else:
             raise Exception(f'sess error: {start_sess}.')
 
+        if args.dataset == 'CGQA':
+            from cgqa import fewshot_testing_benchmark
+        elif args.dataset == 'COBJ':
+            from cobj import fewshot_testing_benchmark
+        else:
+            raise Exception(f'un implemented dataset: {args.dataset}')
+
         task_offset = args.num_train_task if args.return_task_id else 1
         benchmark = fewshot_testing_benchmark(
             n_experiences=args.num_test_task, image_size=(args.image_size, args.image_size), mode=mode,
-            n_way=10, n_shot=10, n_val=5, n_query=10,
+            n_way=args.num_test_class, n_shot=10, n_val=5, n_query=10,
             task_offset=task_offset,
             seed=1234,
             dataset_root=args.data)
