@@ -153,6 +153,7 @@ def main(args):
         )
     else:
         args.epochs = 20    # fewshot test only do 20 epochs
+        args.lr = 1e-3      # fewshot use the same 1e-3 lr to learn the classifier.
         if start_sess < args.num_train_task + 1 * args.num_test_task:      # sys
             sess_offset = args.num_train_task
             mode = 'sys'

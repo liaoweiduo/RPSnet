@@ -5,7 +5,7 @@
 #  $1 is lr, $2 is cuda
 # bash COBJ.sh 1e-3
 
-CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual.py 0 0 $1
+#CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual.py 0 0 $1
 
 for i in {0..7}
 do
