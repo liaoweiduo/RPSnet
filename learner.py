@@ -305,7 +305,8 @@ class Learner():
             elif(self.args.dataset=="SUBGQA"):
                 prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 1))
             else:
-                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 5))
+                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 1))
+                # topk=(1, 5)
             losses.update(loss.item(), inputs.size(0))
             top1.update(prec1.item(), inputs.size(0))
             top5.update(prec5.item(), inputs.size(0))
@@ -397,7 +398,8 @@ class Learner():
             elif(self.args.dataset=="SUBGQA"):
                 prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 1))
             else:
-                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 5))
+                prec1, prec5 = accuracy(output=outputs.data[:,0:num_class], target=targets.cuda().data, topk=(1, 1))
+                # topk=(1, 5)
             losses.update(loss.item(), inputs.size(0))
             top1.update(prec1.item(), inputs.size(0))
             top5.update(prec5.item(), inputs.size(0))

@@ -82,6 +82,9 @@ class args:
 # Use CUDA
 use_cuda = torch.cuda.is_available()
 
+if not use_cuda:
+    raise Exception('CUDA is not available')
+
 seed = random.randint(1, 10000)
 random.seed(seed)
 torch.manual_seed(seed)

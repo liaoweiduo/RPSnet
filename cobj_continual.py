@@ -57,14 +57,14 @@ class args:
 
     num_class = 30         # no use
     # for task-IL, should be 10, for class-IL, should be 100
-    class_per_task = 10
+    class_per_task = 3
     M = 8
-    jump = 1        # todo: since it only has 3 tasks, jump change to 1
+    jump = 2        # todo: since it only has 3 tasks, jump change to 1
     rigidness_coff = 10
     dataset = "COBJ"
-    num_train_task = 3      # only related to sess, for task-IL and class-IL, it is 10.
+    num_train_task = 10     # only related to sess, for task-IL and class-IL, it is 10.
     num_test_task = 300     # with num_class together, use to define the classifier: (300 + 10) * [100]
-    num_test_class = 10
+    num_test_class = 3      # 10, 5, 3
 
     L = 9
     N = 1
@@ -95,7 +95,7 @@ if use_cuda:
     
 if __name__ == '__main__':
     args.lr = float(sys.argv[3])
-    args.exp_name = "RPSnet-lr" + str(args.lr).replace('.', '_')
+    args.exp_name = "RPSnet-10tasks-lr" + str(args.lr).replace('.', '_')
     args.checkpoint = "../RPSnet-experiments/results/cobj/" + args.exp_name
     args.savepoint = "../RPSnet-experiments/models/cobj/" + args.exp_name
 
