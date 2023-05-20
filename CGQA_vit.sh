@@ -12,14 +12,14 @@
 
 #CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 0 3
 
-for i in {4..7}
-do
-  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py $i 4
-done
+#for i in {4..7}
+#do
+#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py $i 4
+#done
 
-CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 0 5
+#CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 0 5
 
-for i in {0..7}
+for i in {2..7}
 do
   CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py $i 6
 done
