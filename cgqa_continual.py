@@ -305,7 +305,10 @@ def main(args):
         if ses>0: 
             path_model=os.path.join(args.savepoint, 'session_'+str(load_model_ses)+'_'+str(load_test_case)+'_model_best.pth.tar')
             prev_best=torch.load(path_model)
-            model.load_state_dict(prev_best['state_dict'])
+            del prev_best['state_dict']["final_layer_test.weight"]
+            del prev_best['state_dict']["final_layer_test.bias"]
+            # for the test classifier, the shape can be different
+            model.load_state_dict(prev_best['state_dict'], strict=False)
             print(f'load model from {path_model}.')
 
             if ses >= args.num_train_task and ses < args.num_train_task + 5 * args.num_test_task:   # afterward also train fe

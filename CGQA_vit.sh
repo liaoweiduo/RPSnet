@@ -19,7 +19,7 @@
 
 #CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py 0 5
 
-for i in {3..7}
+for i in {7..7}
 do
   CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual_vit.py $i 6
 done
