@@ -64,7 +64,7 @@ class args:
     dataset = "COBJ"
     num_train_task = 5     # only related to sess, for task-IL and class-IL, it is 10.
     num_test_task = 300     # with num_class together, use to define the classifier: (300 + 10) * [100]
-    num_test_class = 6     # 10, 6, 3
+    num_test_class = 3     # 10, 6, 3
 
     L = 9
     N = 1
