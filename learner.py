@@ -53,6 +53,26 @@ class Learner():
                 p = {'params': self.model.encoder.parameters()}
                 trainable_params.append(p)
 
+                if hasattr(self.model, 'attn1'):
+                    p = {'params': self.model.attn1.parameters()}
+                    trainable_params.append(p)
+                    p = {'params': self.model.attn2.parameters()}
+                    trainable_params.append(p)
+                    p = {'params': self.model.attn3.parameters()}
+                    trainable_params.append(p)
+                    p = {'params': self.model.attn4.parameters()}
+                    trainable_params.append(p)
+                    p = {'params': self.model.attn5.parameters()}
+                    trainable_params.append(p)
+                    p = {'params': self.model.attn6.parameters()}
+                    trainable_params.append(p)
+                    p = {'params': self.model.attn7.parameters()}
+                    trainable_params.append(p)
+                    p = {'params': self.model.attn8.parameters()}
+                    trainable_params.append(p)
+                    p = {'params': self.model.attn9.parameters()}
+                    trainable_params.append(p)
+
             for j, params in enumerate(params_set):
                 for i, param in enumerate(params):
                     if(i==self.args.M):     # M_skip

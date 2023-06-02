@@ -408,6 +408,226 @@ class MultiHeadRPS_net_ViT(nn.Module):
         return self.dim
 
 
+class MultiHeadRPS_net_ViT_MoE(nn.Module):
+
+    def __init__(self, args):
+        super().__init__()
+        self.args = args
+        self.image_size = args.image_size
+        self.patch_size = 16
+        self.dim = 384
+        # self.depth = 9
+        self.heads = 16
+        self.mlp_dim = 1536
+        self.block_dropout = 0.1
+        self.emb_dropout = 0.1
+        self.pool = 'cls'
+        self.channels = 3
+        self.dim_head = 64
+
+        # self.to_latent = nn.Identity()
+        # self.mlp_head = nn.Sequential(
+        #     nn.LayerNorm(self.dim),
+        # )
+
+        self.final_layers = []
+        self.init(None)
+
+    def init(self, best_path):
+
+        image_height, image_width = pair(self.image_size)
+        patch_height, patch_width = pair(self.patch_size)
+
+        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+
+        num_patches = (image_height // patch_height) * (image_width // patch_width)
+        patch_dim = self.channels * patch_height * patch_width
+        assert self.pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+
+        self.encoder = Encoder(patch_height, patch_width, patch_dim, self.dim, num_patches, self.emb_dropout)
+
+        '''MHA'''
+        self.attn1 = PreNorm(self.dim, Attention(self.dim, heads=self.heads, dim_head=self.dim_head, dropout=self.block_dropout))
+        self.attn2 = PreNorm(self.dim, Attention(self.dim, heads=self.heads, dim_head=self.dim_head, dropout=self.block_dropout))
+        self.attn3 = PreNorm(self.dim, Attention(self.dim, heads=self.heads, dim_head=self.dim_head, dropout=self.block_dropout))
+        self.attn4 = PreNorm(self.dim, Attention(self.dim, heads=self.heads, dim_head=self.dim_head, dropout=self.block_dropout))
+        self.attn5 = PreNorm(self.dim, Attention(self.dim, heads=self.heads, dim_head=self.dim_head, dropout=self.block_dropout))
+        self.attn6 = PreNorm(self.dim, Attention(self.dim, heads=self.heads, dim_head=self.dim_head, dropout=self.block_dropout))
+        self.attn7 = PreNorm(self.dim, Attention(self.dim, heads=self.heads, dim_head=self.dim_head, dropout=self.block_dropout))
+        self.attn8 = PreNorm(self.dim, Attention(self.dim, heads=self.heads, dim_head=self.dim_head, dropout=self.block_dropout))
+        self.attn9 = PreNorm(self.dim, Attention(self.dim, heads=self.heads, dim_head=self.dim_head, dropout=self.block_dropout))
+
+        '''FF'''
+        # self.encoder = nn.ModuleList()    # encoder
+        self.l1 = nn.ModuleList()
+        self.l2 = nn.ModuleList()
+        self.l3 = nn.ModuleList()
+        self.l4 = nn.ModuleList()
+        self.l5 = nn.ModuleList()
+        self.l6 = nn.ModuleList()
+        self.l7 = nn.ModuleList()
+        self.l8 = nn.ModuleList()
+        self.l9 = nn.ModuleList()
+
+        for i in range(self.args.M):
+            # self.encoder.append(Encoder(patch_height, patch_width, patch_dim, self.dim, num_patches, self.emb_dropout))
+            self.l1.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+            self.l2.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+            self.l3.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+            self.l4.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+            self.l5.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+            self.l6.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+            self.l7.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+            self.l8.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+            self.l9.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+
+        # add mx
+        self.l4.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+        self.l6.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+        self.l8.append(PreNorm(self.dim, FeedForward(self.dim, self.mlp_dim, dropout=self.block_dropout)))
+
+        # final layer
+        if len(self.final_layers) < 1:
+            if self.args.return_task_id:    # task-IL
+                for i in range(self.args.num_train_task):
+                    exec(f"self.final_layer{i+1} = nn.Linear({self.dim}, self.args.class_per_task)")    # 10
+                    exec(f"self.final_layers.append(self.final_layer{i+1})")
+
+                exec(f"self.final_layer_test = nn.Linear({self.dim}, self.args.num_test_class)")  # 10
+                exec(f"self.final_layers.append(self.final_layer_test)")
+
+            else:    # class-IL
+                exec(f"self.final_layer1 = nn.Linear({self.dim}, self.args.class_per_task*self.args.num_train_task)")    # 100
+                exec(f"self.final_layers.append(self.final_layer1)")
+
+                exec(f"self.final_layer_test = nn.Linear({self.dim}, self.args.num_test_class)")  # 10
+                exec(f"self.final_layers.append(self.final_layer_test)")
+
+        self.cuda()
+
+    def freeze_feature_extractor(self):
+        for p in self.encoder.parameters():
+            p.requires_grad = False
+
+        for params in [self.attn1, self.attn2, self.attn3, self.attn4, self.attn5, self.attn6, self.attn7, self.attn8, self.attn9]:
+            for p in params.parameters():
+                p.requires_grad = False
+
+        params_set = [self.l1, self.l2, self.l3, self.l4, self.l5, self.l6, self.l7, self.l8, self.l9]
+        for j, params in enumerate(params_set):
+            for i, param in enumerate(params):
+                # param.requires_grad = False
+                for p in param.parameters():
+                    p.requires_grad = False
+
+    def forward(self, img, path, last):
+
+        # x = self.to_patch_embedding(img)
+        # b, n, _ = x.shape
+        #
+        # cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b=b)
+        # x = torch.cat((cls_tokens, x), dim=1)
+        # x += self.pos_embedding[:, :(n + 1)]
+        # x = self.dropout(x)
+
+        # x = self.transformer(x)
+
+        x = img
+
+        # y = self.encoder[0](x)
+        # for j in range(1, self.args.M):
+        #     if (path[0][j] == 1):
+        #         y += self.encoder[j](x)
+        # x = y
+        x = self.encoder(x)
+
+        x = self.attn1(x) + x
+        y = self.l1[0](x)
+        for j in range(1, self.args.M):
+            if (path[0][j] == 1):
+                y += self.l1[j](x)
+        x = y + x
+
+        x = self.attn2(x) + x
+        y = self.l2[0](x)
+        for j in range(1, self.args.M):
+            if (path[1][j] == 1):
+                y += self.l2[j](x)
+        x = y + x
+
+        x = self.attn3(x) + x
+        y = self.l3[0](x)
+        for j in range(1, self.args.M):
+            if (path[2][j] == 1):
+                y += self.l3[j](x)
+        x = y + x
+
+        x = self.attn4(x) + x
+        y = self.l4[-1](x)
+        for j in range(self.args.M):
+            if (path[3][j] == 1):
+                y += self.l4[j](x)
+        x = y
+
+        x = self.attn5(x) + x
+        y = self.l5[0](x)
+        for j in range(1, self.args.M):
+            if (path[4][j] == 1):
+                y += self.l5[j](x)
+        x = y + x
+
+        x = self.attn6(x) + x
+        y = self.l6[-1](x)
+        for j in range(self.args.M):
+            if (path[5][j] == 1):
+                y += self.l6[j](x)
+        x = y
+
+        x = self.attn7(x) + x
+        y = self.l7[0](x)
+        for j in range(1, self.args.M):
+            if (path[6][j] == 1):
+                y += self.l7[j](x)
+        x = y + x
+
+        x = self.attn8(x) + x
+        y = self.l8[-1](x)
+        for j in range(self.args.M):
+            if (path[7][j] == 1):
+                y += self.l8[j](x)
+        x = y
+
+        x = self.attn9(x) + x
+        y = self.l9[0](x)
+        for j in range(1, self.args.M):
+            if (path[8][j] == 1):
+                y += self.l9[j](x)
+        x = y + x
+
+        x = x.mean(dim=1) if self.pool == 'mean' else x[:, 0]
+
+        # x = self.to_latent(x)
+        # x = self.mlp_head(x)
+
+        if type(last) is int:
+            x = self.final_layers[last](x)
+        else:
+            o = []
+            for x_idx in range(x.shape[0]):
+                if last[x_idx] >= len(self.final_layers):  # for few-shot test
+                    idx = -1
+                else:  # for continual train
+                    idx = last[x_idx]
+                o.append(self.final_layers[idx](x[x_idx: x_idx + 1]))  # forward classifier sample by sample
+            x = torch.cat(o)
+
+        return x
+
+    @property
+    def output_size(self):
+        return self.dim
+
+
 if __name__ == '__main__':
 
     def get_parameter_number(model):

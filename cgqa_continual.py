@@ -34,7 +34,7 @@ import random
 
 
 from rps_net import MultiHeadRPS_net
-from vit import MultiHeadRPS_net_ViT
+from vit import MultiHeadRPS_net_ViT, MultiHeadRPS_net_ViT_MoE
 from learner import Learner
 from util import *
 from cifar_dataset import CIFAR100
@@ -100,7 +100,8 @@ def main(args):
     if args.arch == 'res-18':
         model = MultiHeadRPS_net(args)
     elif args.arch == 'vit':
-        model = MultiHeadRPS_net_ViT(args)
+        # model = MultiHeadRPS_net_ViT(args)
+        model = MultiHeadRPS_net_ViT_MoE(args)
     else:
         raise Exception(f'un implemented arch: {args.arch}')
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1024 /1024))

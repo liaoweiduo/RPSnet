@@ -95,7 +95,7 @@ if use_cuda:
     
 if __name__ == '__main__':
     args.lr = float(sys.argv[3])
-    args.exp_name = "RPSnet-vit-lr" + str(args.lr).replace('.', '_')
+    args.exp_name = "RPSnet-vit-MoE-lr" + str(args.lr).replace('.', '_')
     args.checkpoint = "../RPSnet-experiments/results/cobj/" + args.exp_name
     args.savepoint = "../RPSnet-experiments/models/cobj/" + args.exp_name
 

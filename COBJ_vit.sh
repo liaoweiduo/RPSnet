@@ -17,13 +17,26 @@ do
   CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py $i 2 $1
 done
 
-for i_n in {3..602}   # for fewshot, only once, since use all trained modules when doing inference.
+# only 100 few shot
+
+for i_n in {3..102}   # for fewshot, only once, since use all trained modules when doing inference.
 do
   CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py 0 $i_n $1
 done
 
-for i_n in {903..1502}   # for fewshot, only once, since use all trained modules when doing inference.
+for i_n in {303..402}   # for fewshot, only once, since use all trained modules when doing inference.
 do
   CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py 0 $i_n $1
 done
+
+for i_n in {903..1002}   # for fewshot, only once, since use all trained modules when doing inference.
+do
+  CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py 0 $i_n $1
+done
+
+for i_n in {1203..1302}   # for fewshot, only once, since use all trained modules when doing inference.
+do
+  CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py 0 $i_n $1
+done
+
 
