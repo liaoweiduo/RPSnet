@@ -5,9 +5,9 @@
 ##  $1 is lr, $2 is cuda
 ## bash COBJ_vit.sh 1e-4 0
 
-CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py 0 0 $1
+#CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py 0 0 $1
 
-for i in {0..7}
+for i in {6..7}
 do
   CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py $i 1 $1
 done
