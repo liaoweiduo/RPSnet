@@ -12,7 +12,7 @@
 #  CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py $i 1 $1
 #done
 
-for i in {1..7}
+for i in {2..7}
 do
   CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py $i 2 $1
 done
