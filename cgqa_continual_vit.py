@@ -83,9 +83,6 @@ class args:
     gamma = 0.5
 
 
-state = {key:value for key, value in args.__dict__.items() if not key.startswith('__') and not callable(key)}
-print(state)
-
 # Use CUDA
 use_cuda = torch.cuda.is_available()
 
@@ -97,5 +94,9 @@ if use_cuda:
 
     
 if __name__ == '__main__':
-    main(args)
+    args.lr = float(sys.argv[3])
+    args.exp_name = "RPSnet-vit-MoE-lr" + str(args.lr).replace('.', '_')
+    args.checkpoint = "../RPSnet-experiments/results/cgqa/" + args.exp_name
+    args.savepoint = "../RPSnet-experiments/models/cgqa/" + args.exp_name
 
+    main(args)
