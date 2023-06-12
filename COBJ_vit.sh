@@ -7,15 +7,15 @@
 
 #CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py 0 0 $1
 
-#for i in {7..7}
+#for i in {0..7}
 #do
 #  CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py $i 1 $1
 #done
 
-for i in {7..7}
-do
-  CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py $i 2 $1
-done
+#for i in {0..7}
+#do
+#  CUDA_VISIBLE_DEVICES=$2 python3 cobj_continual_vit.py $i 2 $1
+#done
 
 # only 100 few shot
 
