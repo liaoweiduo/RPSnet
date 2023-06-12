@@ -19,7 +19,7 @@
 #  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py $i 4 $1
 #done
 #
-#CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 5 $1
+CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 5 $1
 
 for i in {0..2}
 do
