@@ -34,8 +34,8 @@
 #done
 #CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 8 $1
 #CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 1 8 $1
-CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 2 8 $1
-#CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 3 8 $1
+#CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 2 8 $1
+CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 3 8 $1
 
 #CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 9 $1
 #
