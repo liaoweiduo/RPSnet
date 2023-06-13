@@ -120,7 +120,7 @@ def main(args):
     test_case = sys.argv[1]
 
     '''check if more than 8 test cases on the last sess'''
-    runs = [3 if ses % args.jump == 0 and ses > 0 else 1 for ses in range(args.num_train_task)]
+    runs = [2 if ses % args.jump == 0 and ses > 0 else 1 for ses in range(args.num_train_task)]
     # [1, 1, 8, 1, 8, 1, 8, 1, 8, 1]
     runs.append(1)      # all fewshot run only once
     check_ses = start_sess - 1 if start_sess < args.num_train_task else args.num_train_task - 1

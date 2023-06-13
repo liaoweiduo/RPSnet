@@ -220,7 +220,7 @@ class Learner():
             if is_best:
                 self.epochs_overfitting = epoch
 
-            if self.epochs_overfitting <= epoch - 50:  # patience for 50 epochs
+            if self.epochs_overfitting <= epoch - 10:  # patience for 50 epochs
                 print(f'early stop at epoch: {epoch}')
                 break
 

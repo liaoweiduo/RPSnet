@@ -26,42 +26,46 @@
 #  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py $i 6 $1
 #done
 
-CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 7 $1
+#CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 7 $1
 
-for i in {0..2}
-do
-  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py $i 8 $1
-done
+#for i in {0..2}
+#do
+#  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py $i 8 $1
+#done
+CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 8 $1
+#CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 1 8 $1
+#CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 2 8 $1
+#CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 3 8 $1
 
-CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 9 $1
-
-
-# only 100 few shot
-
-for i_n in {10..109}   # for fewshot, only once, since use all trained modules when doing inference.
-do
-  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 $i_n $1
-done
-
-for i_n in {310..409}   # for fewshot, only once, since use all trained modules when doing inference.
-do
-  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 $i_n $1
-done
-
-for i_n in {610..709}   # for fewshot, only once, since use all trained modules when doing inference.
-do
-  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 $i_n $1
-done
-
-for i_n in {910..1009}   # for fewshot, only once, since use all trained modules when doing inference.
-do
-  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 $i_n $1
-done
-
-for i_n in {1210..1309}   # for fewshot, only once, since use all trained modules when doing inference.
-do
-  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 $i_n $1
-done
+#CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 9 $1
+#
+#
+## only 100 few shot
+#
+#for i_n in {10..109}   # for fewshot, only once, since use all trained modules when doing inference.
+#do
+#  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 $i_n $1
+#done
+#
+#for i_n in {310..409}   # for fewshot, only once, since use all trained modules when doing inference.
+#do
+#  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 $i_n $1
+#done
+#
+#for i_n in {610..709}   # for fewshot, only once, since use all trained modules when doing inference.
+#do
+#  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 $i_n $1
+#done
+#
+#for i_n in {910..1009}   # for fewshot, only once, since use all trained modules when doing inference.
+#do
+#  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 $i_n $1
+#done
+#
+#for i_n in {1210..1309}   # for fewshot, only once, since use all trained modules when doing inference.
+#do
+#  CUDA_VISIBLE_DEVICES=$2 python3 cgqa_continual_vit.py 0 $i_n $1
+#done
 
 
 
