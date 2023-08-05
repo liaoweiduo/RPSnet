@@ -44,7 +44,7 @@ from avalanche.benchmarks.utils import PathsDataset
 
 class args:
     epochs = 100
-    exp_name = "RPSnet-resnet-lr1e-3"
+    exp_name = "RPSnet-resnet-lr1e-3-notfrozen"
     checkpoint = "../RPSnet-experiments/results/cgqa/" + exp_name
     savepoint = "../RPSnet-experiments/models/cgqa/" + exp_name
     data = '../datasets'

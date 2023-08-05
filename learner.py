@@ -79,7 +79,7 @@ class Learner():
                         p = {'params': param.parameters()}
                         trainable_params.append(p)
                     else:
-                        if(self.train_path[j,i]==1):
+                        if(self.train_path[j,i]==1 or self.fixed_path[j,i]==1):     # todo: change to jointly train all used modules.
                             p = {'params': param.parameters()}
                             trainable_params.append(p)
                         else:
