@@ -3,43 +3,52 @@
 # continual 0...9; sys 10..309; pro 310...609; sub 610..909; non 910..1209; noc 1210..1509
 
 
-CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 0
+#CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 0
+#
+#CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 1
+#
+#for i in {0..3}
+#do
+#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py $i 2
+#done
+#
+#CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 3
+#
+#for i in {0..3}
+#do
+#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py $i 4
+#done
+#
+#CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 5
+#
+#for i in {0..3}
+#do
+#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py $i 6
+#done
+#
+#CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 7
+#
+#for i in {0..3}
+#do
+#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py $i 8
+#done
+#
+#CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 9
 
-CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 1
+#for i_n in {10..1509}   # for fewshot, only once, since use all trained modules when doing inference.
+#do
+#  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 $i_n
+#done
 
-for i in {0..3}
-do
-  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py $i 2
-done
-
-CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 3
-
-for i in {0..3}
-do
-  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py $i 4
-done
-
-CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 5
-
-for i in {0..3}
-do
-  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py $i 6
-done
-
-CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 7
-
-for i in {0..3}
-do
-  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py $i 8
-done
-
-CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 9
-
-for i_n in {10..1509}   # for fewshot, only once, since use all trained modules when doing inference.
+for i_n in {910..959}   # for fewshot, only once, since use all trained modules when doing inference.
 do
   CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 $i_n
 done
 
+for i_n in {1210..1259}   # for fewshot, only once, since use all trained modules when doing inference.
+do
+  CUDA_VISIBLE_DEVICES=0 python3 cgqa_continual.py 0 $i_n
+done
 
 
 
